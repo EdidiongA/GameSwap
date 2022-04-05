@@ -1,0 +1,75 @@
+<div class="container format mat-elevation-28">
+    <div><h2>Item details</h2></div>
+    <div style="width: 50%;"><hr></div>
+    <div class="row">
+        <div class="col-sm-6">
+              <div class="row">
+                <div class="col-3 header " >Item No</div><div class="col ">{{item.itemId}}</div>
+            </div>  
+                <div class="row">
+                   <div class="col-3 header">Title</div><div class="col">{{item.title}}</div>
+                </div>
+                <div class="row">
+                    <div class="col-3 header">Game type</div><div class="col">{{item.type}}</div>
+                </div>
+                <div class="row">
+                    <div class="col-3 header">Platform</div><div class="col">{{item.title}}</div>
+                </div>
+                <div class="row">
+                    <div class="col-3 header">Media</div><div class="col">{{item.condition}}</div>
+                </div>
+                <div class="row">
+                    <div class="col-3 header">Condition</div><div class="col">{{item.description}}</div>
+                </div>
+
+                     
+        </div>
+        <div class="col">
+            <!-- 2nd column-->
+            <div class="row">
+                <div class="col-3 header">Offered by</div>
+                <div class="col">sample data</div>
+            </div>
+            <div class="row">
+                <div class="col-3 header">Location</div>
+                <div class="col">smaple data</div>
+            </div>
+            <div class="row">
+                <div class="col-3 header">Rating</div>
+                <div class="col">smaple data</div>
+            </div>
+            <div class="row">
+                <div class="col-3 header">Distance</div>
+                <div class="col" name="distanceBox" id="distanceBox">{{item.distance}}</div>
+            </div>
+            <div class="row">
+                <div class="col-5" >
+                 <button class="btn btn-primary" (click)="onProposeSwap()">Propose swap</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+
+<!--
+    swapId: number;
+    date: string;
+    desiredItemId: string;
+    desiredItemTitle: string;
+    proposer:string;
+    rating:number;
+    distance:number;
+    proposedItemId:number;
+    proposedItemTittle:string;
+
+
+<h1>Item Details</h1>
+<h3>{{item.itemId}}</h3>
+<h3>{{item.type}}</h3>
+<h3>{{item.title}}</h3>
+<h3>{{item.condition}}</h3>
+<h3>{{item.description}}</h3>
+-->

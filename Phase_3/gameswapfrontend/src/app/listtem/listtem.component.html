@@ -1,0 +1,86 @@
+<div class="form-control container">
+  <form >
+  <div><h1>New Item Listing</h1></div>
+
+  <div class="option form-group">
+   <label for="gametype">Game Type:</label>
+   <div>
+      <select 
+        name="gametype" [(ngModel)]="gametype" class="form-select btn-default"  
+        (change)="onGameTypeSelect()"  
+        id="gametype" 
+        name="gametype">
+         <option value="BoardGame">Board Game</option>
+         <option value="CardGame"> Card Game</option>
+         <option value="VideoGame">Video Game</option>
+         <option value="ComputerGame">Computer Game</option>
+          <option value="JigsawPuzzle">Jigsaw Puzzle</option>   
+      </select>
+    </div>
+  </div>
+
+  <div class="option form-group">
+    <label class="form-label" for="platformOS">PLatform</label>
+    <div>
+       <select name="platformOS" [(ngModel)]="platformOS" class="form-select btn-default" id="platformOS">
+         <option value="Linux">Linux</option>
+         <option value="macOS"> macOS</option>
+         <option value="Windows">Windows</option>
+       </select>
+     </div>
+   </div>
+
+   <div class="option form-group">
+    <label class="form-label" for="platform">PLatform</label>
+    <div>
+       <select name="platform" [(ngModel)]="platform" class="form-select btn-default" id="platform">
+         <option value="Nintendo">Nintendo</option>
+         <option value="PlayStation"> PlayStation</option>
+         <option value="Xbox">Xbox</option>
+       </select>
+     </div>
+   </div>
+
+   <div class="option form-group">
+    <label  class="form-label" for="media">Media</label>
+    
+       <select name="media" [(ngModel)]="media" class="form-select btn-default" id="media">
+         <option value="opticalDisc">Optical Disc</option>
+         <option value="gameCard"> Game card</option>
+         <option value="cartridge">Cartridge</option>
+       </select>
+     
+   </div>
+
+   <div class="option form-group">
+    <label class="form-label" for="pieceCount">Piece Count</label>
+    <input class="form-control" [(ngModel)]="pieceCount" type="number" name="pieceCount" id="pieceCount" min="1" value="1">
+  </div>
+
+  <div class="option form-group">
+    <label class="form-label" for="title">Title</label>
+    <input class="form-control" [(ngModel)]="title" type="text" name="title" id="title" placeholder="Enter title">
+  </div>
+
+  <div class="option form-group">
+    <label class="form-label" for="description">Description (Optional): </label>
+    <textarea class="form-control" 
+    [(ngModel)]="description"
+      type="textarea" 
+      name="description" 
+      id="description" 
+      placeholder="Enter Description"></textarea>
+  </div>
+
+  <tr></tr>
+<div class=" option container-fluid">
+  <button mat-raised-button color="primary" (click)="onBackToMain()" >Back to Main Menu</button>
+    <!-- <button type="button" onclick="myFunction()">List Item</button>-->
+    <button mat-raised-button color="primary" (click)="listItem()" style="margin-left: 20px;">List Item</button>
+</div>
+
+</form>
+</div>
+
+
+<div></div>

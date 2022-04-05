@@ -1,0 +1,14 @@
+<h2>Sign In</h2>
+<div style="margin-left: 15px;">
+    <h3>Email/phone number</h3>
+    <input matInput  [(ngModel)]="loginId">
+    <h3>Password</h3>
+    <input matInput  [(ngModel)]="password">
+    <div style="margin-top: 5px;">
+        <button mat-raised-button color="primary" (click)="onLogin()" >Login</button>
+    </div>
+</div>
+<h2>New User</h2>
+<div style="margin-left: 15px;">
+    <button mat-raised-button color="primary" (click)="onRegister()" >Register</button>
+</div>

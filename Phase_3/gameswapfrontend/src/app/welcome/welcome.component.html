@@ -1,0 +1,33 @@
+<h1>GameSwap</h1>
+<div style="margin-left: 15px;">
+<h2>Welcome, {{name}}</h2>
+<div style="float: left; width: 20%" >
+    <h3>My Rating</h3>
+    <div>{{myrating}}</div>
+    <h3>Unaccepted Swaps</h3>
+    <div>{{unacceptedSwaps}}</div>
+    <h3>Unrated Swaps</h3>
+    <div>{{unratedSwaps}}</div>
+</div>
+<div style="float: right; width: 80%" >
+    <div>
+        <button mat-raised-button color="primary" style="margin-top: 15px;" (click)="onListItem()" >List Item</button>
+    </div>
+    <div>
+        <button mat-raised-button color="primary" style="margin-top: 15px;" (click)="onMyItems()" >My items</button>
+    </div>
+    <div>
+        <button mat-raised-button color="primary" style="margin-top: 15px;" (click)="onSearchItems()" >Search items</button>
+    </div>    
+    <div>
+        <button mat-raised-button color="primary" style="margin-top: 15px;" (click)="onSwapHistory()" >Swap history</button>
+    </div>   
+    <div>
+        <button mat-raised-button color="primary" style="margin-top: 15px;" (click)="onUpdateInfo()" >Update my info</button>
+    </div>       
+</div>
+<div>
+    <button mat-raised-button color="primary" style="margin-top: 15px;" (click)="onLogout()" >Logout</button>
+</div>
+</div>
+
