@@ -1,13 +1,41 @@
 package com.gatech.gameswap.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 public class User {
 
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private String email;
-	private String postalCode;
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	private Location location;
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private String firstName;
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private String lastName;
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private String nickName;
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private String password;
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	private Phone phone;
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	private UserStats userStats;
+	
+	public UserStats getUserStats() {
+		return userStats;
+	}
+
+	public void setUserStats(UserStats userStats) {
+		this.userStats = userStats;
+	}
+
+	public Phone getPhone() {
+		return phone;
+	}
+
+	public void setPhone(Phone phone) {
+		this.phone = phone;
+	}
 
 	public String getEmail() {
 		return email;
@@ -15,12 +43,6 @@ public class User {
 
 	public void setEmail(String email) {
 		this.email = email;
-	}
-	public String getPostalCode() {
-		return postalCode;
-	}
-	public void setPostalCode(String postalCode) {
-		this.postalCode = postalCode;
 	}
 	public String getFirstName() {
 		return firstName;
@@ -46,23 +68,20 @@ public class User {
 	public void setPassword(String password) {
 		this.password = password;
 	}
-	public User() {
-		super();
+
+	public Location getLocation() {
+		return location;
 	}
-	public User(String email, String postalCode, String firstName, String lastName, String nickName, String password) {
-		super();
-		this.email = email;
-		this.postalCode = postalCode;
-		this.firstName = firstName;
-		this.lastName = lastName;
-		this.nickName = nickName;
-		this.password = password;
+
+	public void setLocation(Location location) {
+		this.location = location;
 	}
 
 	@Override
 	public String toString() {
-		return "User [email=" + email + ", postalCode=" + postalCode + ", firstName=" + firstName + ", lastName="
-				+ lastName + ", nickName=" + nickName + ", password=" + password + "]";
+		return "User [email=" + email + ", location=" + location + ", firstName=" + firstName + ", lastName=" + lastName
+				+ ", nickName=" + nickName + ", password=" + password + ", phone=" + phone + ", userStats=" + userStats
+				+ "]";
 	}
 
 }

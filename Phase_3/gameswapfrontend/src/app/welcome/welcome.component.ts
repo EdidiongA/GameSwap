@@ -1,23 +1,48 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { GameswapService } from '../gameswap.service';
+import { Subscription } from 'rxjs';
+
 @Component({
   selector: 'app-welcome',
   templateUrl: './welcome.component.html',
   styleUrls: ['./welcome.component.scss']
 })
-export class WelcomeComponent implements OnInit {
+export class WelcomeComponent implements OnInit, OnDestroy {
 
-  constructor(private router:Router) { }
+  
+  userId: String
+  subscriptionUser: Subscription;
+    
+  constructor(private router:Router,
+    private gameswapService: GameswapService) 
+    { }
+
   name
   myrating
   unacceptedSwaps
   unratedSwaps
   ngOnInit(): void {
-    this.name = '[need to name get from DB]'
-    this.myrating = '[need to rating get from DB]'
-    this.unacceptedSwaps = '[need to unaccepted swaps get from DB]'
-    this.unratedSwaps = '[need to unrated swaps get from DB]'    
+
+    this.subscriptionUser = this.gameswapService.currentUser.subscribe(user => this.userId = user)
+
+    const promise = this.gameswapService.getUserInfo(this.userId)
+    promise.then((data)=>{
+      console.log(JSON.stringify(data));
+                  
+      this.name = data.firstName + ' ' + data.lastName
+      this.myrating = data.userStats.rating
+      this.unacceptedSwaps = data.userStats.unacceptedSwapCount
+      this.unratedSwaps = data.userStats.unratedSwapCount
     
+    }).catch((error)=>{
+      console.log("Promise rejected with " + JSON.stringify(error));
+    });  
+    
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptionUser.unsubscribe()
   }
 
   onListItem() {
@@ -36,6 +61,7 @@ export class WelcomeComponent implements OnInit {
     this.router.navigate(['/UpdateInfo']);
   }
   onLogout() {
+    this.gameswapService.updateUserId('')
     this.router.navigate(['/Login']);
   }
 

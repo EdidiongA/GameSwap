@@ -11,7 +11,7 @@ import { Router } from '@angular/router';
 })
 export class ViewitemComponent implements OnInit, OnDestroy {
 
-  constructor(private gameswapService: GameswapService) { }
+  constructor(private gameswapService: GameswapService,private router:Router) { }
 
   item: GameSwapItem
   subscriptionItem: Subscription;
@@ -28,7 +28,7 @@ export class ViewitemComponent implements OnInit, OnDestroy {
   }
 
   onProposeSwap() {
-   
+    this.router.navigate(['/ProposeSwap']);
   }
 
 }

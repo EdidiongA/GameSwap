@@ -1,10 +1,18 @@
 package com.gatech.gameswap.repository;
 
-import java.sql.SQLException;
+import java.util.List;
 
-import org.json.simple.JSONObject;
+import com.gatech.gameswap.model.Item;
+import com.gatech.gameswap.model.ItemSearchResult;
+import com.gatech.gameswap.model.OwnedItemsSummary;
 
 public interface ItemRepository {
 
-	JSONObject itemDetail(String userID,int itemID) throws SQLException;
+	Long addItem(String email, Item item);
+	List<Item> getOwnedItems(String email);
+	OwnedItemsSummary getOwnedItemsSummary(String email);
+	Item getItem(Long itemId, String email);
+	List<ItemSearchResult> searchItems(String email, Item.ItemSearchKey searchKey, String searchFor);
+	List<String> getVideoGamePlatforms();
+
 }

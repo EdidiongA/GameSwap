@@ -16,14 +16,27 @@ export class LoginComponent implements OnInit {
 
   loginId
   password
-
+  loginError
   ngOnInit(): void {
   }
 
   onLogin() {
     //this.gameswapService.addUser()
-    console.log(this.loginId + ',' + this.password)
-    this.router.navigate(['/Welcome']);
+    const promise = this.gameswapService.getAuthentication(this.loginId, this.password)
+    promise.then((data)=>{
+      console.log(JSON.stringify(data));
+      var status = JSON.stringify(data)
+      
+      if(status == 'true')
+      {
+        this.gameswapService.updateUserId(this.loginId)
+        this.router.navigate(['/Welcome']);
+      }
+      else
+        this.loginError = 'Login failed. Please try again.'
+    }).catch((error)=>{
+      console.log("Promise rejected with " + JSON.stringify(error));
+    });
   }
 
   onRegister() {

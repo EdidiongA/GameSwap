@@ -8,11 +8,20 @@ import { BehaviorSubject } from 'rxjs';
 })
 export class GameswapService {
   // chrome.exe --user-data-dir="C://Chrome dev session" --disable-web-security
-  rootURL = 'http://localhost:8081/';
+  rootURL = 'http://localhost:8081/GameSwap/';
 
   
   private selectedItem: BehaviorSubject<GameSwapItem> = new BehaviorSubject<GameSwapItem>(null);
   currentItem = this.selectedItem.asObservable();
+
+  private userId: BehaviorSubject<string> = new BehaviorSubject<string>(null);
+  currentUser = this.userId.asObservable();
+
+  currentUserId
+  updateUserId(userId: string) {
+    this.userId.next(userId)     
+    this.currentUserId = userId
+  }
 
   updateSelectedItem(item: GameSwapItem) {
     this.selectedItem.next(item)     
@@ -30,6 +39,45 @@ export class GameswapService {
             console.error('There was an error!', error);
         }
     })
+  }
+
+  getUserInfo(userId) {
+    console.log('get user');
+    return this.http.get<any>(this.rootURL + 'user', {
+      params: {
+        email: userId
+           }
+    }).toPromise()
+  }
+
+  getItemForSwap(userId) {
+    return this.http.get<any[]>(this.rootURL + 'item/owned', {
+      headers: {
+        email: this.currentUserId
+           }
+    }).toPromise()
+  }
+
+  getAuthentication(loginId, password) {
+    console.log('get user');
+    return this.http.get<any>(this.rootURL + 'user/authenticate', {
+      params: {
+        email: loginId,
+        password: password
+           }
+    }).toPromise()
+
+    // this.http.get(this.rootURL + 'user', {
+    //   params: {
+    //     email: loginId
+    //   },
+    //   observe: 'response'
+    // })
+    // .toPromise()
+    // .then(response => {
+    //   console.log(response);
+    // })
+    // .catch(console.log);
   }
 
   getPostalCodes() {

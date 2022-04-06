@@ -3,8 +3,8 @@ package com.gatech.gameswap.model;
 public class Swap {
 	String proposerID;
 	String counterPartyID;
-	int proposerItemID;
-	int counterPartyItemID;
+	Long proposerItemID;
+	Long counterPartyItemID;
 	
 	public String getProposerID() {
 		return proposerID;
@@ -18,16 +18,16 @@ public class Swap {
 	public void setCounterPartyID(String counterPartyID) {
 		this.counterPartyID = counterPartyID;
 	}
-	public int getProposerItemID() {
+	public Long getProposerItemID() {
 		return proposerItemID;
 	}
-	public void setProposerItemID(int proposerItemID) {
+	public void setProposerItemID(Long proposerItemID) {
 		this.proposerItemID = proposerItemID;
 	}
-	public int getCounterPartyItemID() {
+	public Long getCounterPartyItemID() {
 		return counterPartyItemID;
 	}
-	public void setCounterPartyItemID(int counterPartyItemID) {
+	public void setCounterPartyItemID(Long counterPartyItemID) {
 		this.counterPartyItemID = counterPartyItemID;
 	}
 	

@@ -1,44 +1,58 @@
 package com.gatech.gameswap.service;
 
-import java.sql.SQLException;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.gatech.gameswap.model.Location;
 import com.gatech.gameswap.model.User;
 import com.gatech.gameswap.repository.UserRepository;
 
 @Service
-public class UserServiceImpl implements UserService{
+public class UserServiceImpl implements UserService {
 
 	@Autowired
 	UserRepository userRepository;
 	
 	@Override
-	public Boolean createUser(User user) throws SQLException {
+	public Boolean createUser(User user) {
 		return userRepository.createUser(user);	
 	
 	}
 
 	@Override
-	public String updateUser(User user) throws SQLException {
-		
-		if(validateUnacceptedSwaps(user)) {
-			return "PENDING_UNACCEPTED_SWAPS";
-		}else {
-			Boolean success = userRepository.updateUser(user);
-			return success ? "SUCCESS" : "FAILURE" ;
-		}
-		
-	}
-	
-	private Boolean validateUnacceptedSwaps(User user) {
-		//call repo method to validate
-		return false;
+	public Boolean checkEmailExists(String email) {		
+		return userRepository.checkEmailExists(email);
 	}
 
 	@Override
-	public Boolean login(String userId, String password) throws SQLException {
-		return userRepository.login(userId, password);
+	public Boolean checkPhoneExists(String phone) {
+		return userRepository.checkPhoneExists(phone);
+	}
+
+	@Override
+	public List<Location> getLocations() {
+		return userRepository.getLocations();
+	}
+
+	@Override
+	public Boolean authenticateUser(String email, String password) {		
+		return userRepository.authenticateUser(email, password);
+	}
+
+	@Override
+	public User getUser(String email) {		
+		return userRepository.getUser(email);
+	}
+
+	@Override
+	public Double getRating(String email) {
+		return userRepository.getRating(email);
+	}
+
+	@Override
+	public Boolean updateUser(User user) {
+		return userRepository.updateUser(user);
 	}
 }

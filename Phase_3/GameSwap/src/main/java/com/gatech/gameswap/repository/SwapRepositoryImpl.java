@@ -5,6 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.sql.DataSource;
 
@@ -13,7 +15,19 @@ import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import com.gatech.gameswap.model.History;
+import com.gatech.gameswap.model.Item;
+import com.gatech.gameswap.model.Phone;
+import com.gatech.gameswap.model.Phone.PhoneNumberType;
+import com.gatech.gameswap.model.Item.Condition;
+import com.gatech.gameswap.model.Item.GameType;
 import com.gatech.gameswap.model.Swap;
+import com.gatech.gameswap.model.SwapAck;
+import com.gatech.gameswap.model.SwapDetail;
+import com.gatech.gameswap.model.SwapHistory;
+import com.gatech.gameswap.model.SwapHistorySummary;
+import com.gatech.gameswap.model.SwapRating;
+
 
 @Repository
 public class SwapRepositoryImpl implements SwapRepository{
@@ -24,11 +38,13 @@ public class SwapRepositoryImpl implements SwapRepository{
 	@Override
 	public Boolean swapRequest(Swap swap) throws SQLException {
 		
-		String sql = "INSERT into Swap (proposer_email, counterparty_email, proposed_item_id, counterparty_item_id, proposed_date)\n"
-				+ " VALUES ('"+swap.getProposerID()+"','"+swap.getCounterPartyID()+"','"+ swap.getProposerItemID()+"','"+swap.getCounterPartyItemID()+"',CAST(now() As Date))";
+		String sql = "INSERT into Swap (proposer_email, counterparty_email, proposed_item_id, counterparty_item_id, proposed_date) VALUES (?,?,?,?,CURRENT_DATE())";
 		 try(Connection conn = dataSource.getConnection()) {
 				PreparedStatement statement = conn.prepareStatement(sql);
-
+				statement.setString(1, swap.getProposerID());
+				statement.setString(2, swap.getCounterPartyID());
+				statement.setLong(3, swap.getProposerItemID());
+				statement.setLong(4, swap.getCounterPartyItemID());
 			int rowsInserted = statement.executeUpdate();
 			if (rowsInserted > 0) {
 			    System.out.println("swap requested!");
@@ -41,220 +57,530 @@ public class SwapRepositoryImpl implements SwapRepository{
 			}
 			return false;
 	}
+	
 
 	@Override
-	public JSONObject proposeSwap(String userID) throws SQLException {
-		JSONObject jsonObject = new JSONObject();
-	    JSONArray array = new JSONArray();
-	    JSONObject record = new JSONObject();
+	public List<Item> proposeSwap(String userID,Long itemID) throws SQLException {
+		List<Item> items = new ArrayList<Item>();
 	    try(Connection conn = dataSource.getConnection())  {
-			String sql = "((SELECT COUNT(1) unrated_swap_count from Swap s\n"
-					+ "JOIN AcknowledgedSwap a\n"
-					+ "ON s.swap_id = a.swap_id\n"
-					+ "WHERE a.status = 'ACCEPTED'\n"
-					+ "AND (s.proposer_email ='"+userID+"' OR s.counterparty_email ='"+userID+"')\n"
-					+ "AND a.swap_id NOT IN\n"
-					+ "(SELECT swap_id from Ratedswap where email ='"+userID+"')))";
-			
-			Statement statement = conn.createStatement();
-			ResultSet resultSet = statement.executeQuery(sql);
-			if(resultSet.next()) {
-				record.put("unrated_swap_count", resultSet.getInt("unrated_swap_count"));
-				array.add(record);
-				int swap_unrated = resultSet.getInt("unrated_swap_count");
-				if(swap_unrated < 2) {
-					String sql1 = "SELECT item.item_id, item.type, item.name, item.condition FROM\n"
-							+ "Item\n" 
-							+ "LEFT OUTER JOIN\n"
-							+ "swap ON (counterparty_item_id = item_id)\n"
-							+ "LEFT OUTER JOIN Acknowledgedswap ON (swap.swap_id = Acknowledgedswap.swap_id)\n"
-							+ "WHERE (counterparty_email ='"+userID+"' AND Acknowledgedswap.status = 'REJECTED')\n" 
-							+ "OR (item.email ='"+userID+"' AND swap.swap_id IS NULL)";
+					String sql = "SELECT item.item_id, item.type, item.name, item.condition FROM item WHERE item_id NOT IN(\n"
+							+ "SELECT s.counterparty_item_id from swap as s \n"
+							+ "where s.counterparty_email = ? and s.swap_id in (select swap_id from acknowledgedswap where status='ACCEPTED')\n"
+							+ "UNION\n"
+							+ "SELECT s.counterparty_item_id from swap as s \n"
+							+ "where s.counterparty_email = ? and s.proposed_item_id = ? and s.swap_id in (select swap_id from acknowledgedswap where status='REJECTED')\n"
+							+ "UNION\n"
+							+ "SELECT s.counterparty_item_id from swap as s \n"
+							+ "where s.counterparty_email = ? and  s.swap_id not in (select swap_id from acknowledgedswap) \n"
+							+ "UNION\n"
+							+ "SELECT s.proposed_item_id from swap as s \n"
+							+ "where s.proposer_email = ? and  s.swap_id in (select swap_id from acknowledgedswap where status='ACCEPTED')\n"
+							+ "UNION\n"
+							+ "SELECT s.proposed_item_id from swap as s \n"
+							+ "where s.proposer_email = ? and  s.counterparty_item_id = ? and s.swap_id in (select swap_id from acknowledgedswap where status='REJECTED')\n"
+							+ "UNION\n"
+							+ "SELECT s.proposed_item_id from swap as s \n"
+							+ "where s.proposer_email = ? and  s.swap_id not in (select swap_id from acknowledgedswap)) AND email = ?";
 				
-					ResultSet result = statement.executeQuery(sql1);
+					PreparedStatement statement = conn.prepareStatement(sql);
+					statement.setString(1, userID);
+					statement.setString(2, userID);
+					statement.setLong(3, itemID);
+					statement.setString(4, userID);
+					statement.setString(5, userID);
+					statement.setString(6, userID);
+					statement.setLong(7, itemID);
+					statement.setString(8, userID);
+					statement.setString(9, userID);
+					
+					ResultSet result = statement.executeQuery();
+					
 					while(result.next()) {
-					record.put("item_id", result.getString("item_id"));
-					record.put("type", result.getString("type"));
-					record.put("name", result.getString("name"));
-					record.put("condition", result.getString("condition"));
-					array.add(record);
+						Item itm = new Item();
+						itm.setId(result.getLong("item_id"));
+						itm.setName(result.getString("name"));
+						itm.setGameType(Enum.valueOf(GameType.class,result.getString("type")));
+						itm.setCondition(Enum.valueOf(Condition.class,result.getString("condition")));
+					items.add(itm);
 					}
-				}
-			}
-			jsonObject.put("Propose_item", array);
-			conn.close();
 
-		} catch (SQLException e) {
+					conn.close();	
+			}
+
+	    catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		return jsonObject;
+		return items;
 	}
-
+	
 	@Override
-	public JSONObject ackPage(String userID) throws SQLException {
-		JSONObject jsonObject = new JSONObject();
-	    JSONArray array = new JSONArray();
-	    JSONObject record = new JSONObject();
+	public List<SwapAck> ackPage(String userID) throws SQLException {
+		List<SwapAck> ackList = new ArrayList<SwapAck>();
 	    try(Connection conn = dataSource.getConnection()) {
-		 String sql ="SELECT latitude, longitude FROM user JOIN Location on location.postal_code = user.postal_code where email ='"+userID+"'";
-		 Statement statement = conn.createStatement();
-		 ResultSet rs = statement.executeQuery(sql);
+		 String sql ="SELECT latitude, longitude FROM user JOIN Location on location.postal_code = user.postal_code where email =?";
+		 PreparedStatement statement = conn.prepareStatement(sql);
+		 statement.setString(1, userID);
+		 ResultSet rs = statement.executeQuery();
 			if(rs.next()) {
 				Double latitude = rs.getDouble("latitude");
 				Double longitude = rs.getDouble("longitude");
 				
 				String sql1 = "SELECT Swap.proposed_date, User.nickname proposer, item1.name proposed_item ,item2.name desired_item,\n"
-						+ "(SELECT AVG(rating) Rating FROM ratedswap WHERE email=proposer_email GROUP BY email) Rating,( 3958.75 * 2 * atan2(sqrt(sin((radians("+latitude+" - (location.latitude))) / 2) * sin((radians("+latitude+" - (location.latitude))) / 2) *\n"
-						+ "cos(radians("+latitude+")) * cos(radians("+latitude+")) *\n"
-						+ "sin((radians(("+longitude+")- (location.longitude))) / 2) * sin((radians(("+longitude+")- (location.longitude))) / 2)),\n"
-						+ "sqrt((1-sin((radians("+latitude+" - (location.latitude))) / 2) * sin((radians("+latitude+" - (location.latitude))) / 2) *\n"
-						+ "cos(radians("+latitude+")) * cos(radians("+latitude+")) *\n"
-						+ "sin((radians(("+longitude+")- (location.longitude))) / 2) * sin((radians(("+longitude+")- (location.longitude))) / 2))))) AS distance\n"
+						+ "(SELECT AVG(rating) Rating FROM ratedswap WHERE email=proposer_email GROUP BY email) Rating,\n"
+						+ "( 3958.75 * 2 * atan2(sqrt(sin((radians(? - (location.latitude))) / 2) * sin((radians(? - (location.latitude))) / 2) *\n"
+						+ "cos(radians(?)) * cos(radians(?)) *\n"
+						+ "sin((radians((?)- (location.longitude))) / 2) * sin((radians((?)- (location.longitude))) / 2)),\n"
+						+ "sqrt(1-(sin((radians(? - (location.latitude))) / 2) * sin((radians(? - (location.latitude))) / 2) *\n"
+						+ "cos(radians(?)) * cos(radians(?)) *\n"
+						+ "sin((radians((?)- (location.longitude))) / 2) * sin((radians((?)- (location.longitude))) / 2))))) AS distance\n"
 						+ "FROM User\n"
 						+ "JOIN Swap ON (Swap.proposer_email = User.email)\n"
 						+ "LEFT OUTER JOIN Item AS item1 ON (swap.proposed_item_id = item1.item_id)\n"
 						+ "LEFT OUTER JOIN Item AS item2 ON (swap.counterparty_item_id = item2.item_id)\n"
 						+ "LEFT OUTER JOIN Location ON (User.postal_code = Location.postal_code)\n"
 						+ "WHERE swap.swap_id IN\n"
-						+ "(SELECT swap_id from swap where counterparty_email = '"+userID+"' AND swap_id NOT IN (SELECT Acknowledgedswap.swap_id from swap JOIN AcknowledgedSwap \n"
-						+ "ON swap.swap_id = Acknowledgedswap.swap_id WHERE counterparty_email = '"+userID+"'))";
-				ResultSet resultSet = statement.executeQuery(sql1);
+						+ "(SELECT swap_id from swap where counterparty_email = ? AND swap_id NOT IN (SELECT Acknowledgedswap.swap_id from swap JOIN AcknowledgedSwap \n"
+						+ "ON swap.swap_id = Acknowledgedswap.swap_id WHERE counterparty_email = ?))";
+				PreparedStatement stat = conn.prepareStatement(sql1);
+				stat.setDouble(1, latitude);
+				stat.setDouble(2, latitude);
+				stat.setDouble(3, latitude);
+				stat.setDouble(4, latitude);
+				stat.setDouble(5, longitude);
+				stat.setDouble(6, longitude);
+				stat.setDouble(7, latitude);
+				stat.setDouble(8, latitude);
+				stat.setDouble(9, latitude);
+				stat.setDouble(10, latitude);
+				stat.setDouble(11, longitude);
+				stat.setDouble(12, longitude);
+				stat.setString(13, userID);
+				stat.setString(14, userID);
+				ResultSet resultSet = stat.executeQuery();
 				while(resultSet.next()) {
-					record.put("proposed_date", resultSet.getString("proposed_date"));
-					record.put("proposer", resultSet.getString("proposer"));
-					record.put("proposed_item", resultSet.getString("proposed_item"));
-					record.put("desired_item", resultSet.getString("desired_item"));
-					//record.put("distance", resultSet.getString("distance"));
-					record.put("Rating", resultSet.getString("Rating"));
-					array.add(record);
+					SwapAck ack = new SwapAck();
+					ack.setProposed_date(resultSet.getString("proposed_date"));
+					ack.setProposer(resultSet.getString("proposer"));
+					ack.setProposed_item(resultSet.getString("proposed_item"));
+					ack.setDesired_item(resultSet.getString("desired_item"));
+					ack.setDistance(resultSet.getDouble("distance"));
+					ack.setRating(resultSet.getInt("Rating"));
+					ackList.add(ack);
 				}
 				conn.close();
 			}
 	    } catch (SQLException e) {
 			e.printStackTrace();
 		}
-		jsonObject.put("accept_rejecy_swap_list", array);
-		return jsonObject;
+		return ackList;
 	}
 
 	@Override
-	public Boolean swapAccept(int proposerItemID, int counterPartyItemID) throws SQLException {
-		try(Connection conn = dataSource.getConnection()) {
-			String sql = "SELECT swap_id FROM swap\n"
-					+ "WHERE proposed_item_id = '"+proposerItemID+"' and counterparty_item_id='"+counterPartyItemID+"'";
-			 Statement statement = conn.createStatement();
-			 ResultSet rs = statement.executeQuery(sql);
-			 if(rs.next()) {
-				 String swapID= rs.getString("swap_id");
-			 
-				 String sql1 = "INSERT INTO acknowledgedswap \n"
-						 + "VALUES ( '"+swapID+"', 'ACCEPTED', CAST(now() As Date))";
-				 PreparedStatement stat = conn.prepareStatement(sql1);
-					int rowsInserted = stat.executeUpdate();
-					conn.close();
-					if (rowsInserted > 0) {
-					    System.out.println("swap accepted!");
-					    return true;
-					}
-			 }
-		
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
-
-	@Override
-	public Boolean swapReject(int proposerItemID, int counterPartyItemID) throws SQLException {
-		try(Connection conn = dataSource.getConnection()) {
-			String sql = "SELECT swap_id FROM swap\n"
-					+ "WHERE proposed_item_id = '"+proposerItemID+"' and counterparty_item_id='"+counterPartyItemID+"'";
-			 Statement statement = conn.createStatement();
-			 ResultSet rs = statement.executeQuery(sql);
-			 if(rs.next()) {
-				 String swapID= rs.getString("swap_id");
-			 
-				 String sql1 = "INSERT INTO acknowledgedswap \n"
-						 + "VALUES ( '"+swapID+"', '‘REJECTED’', CAST(now() As Date))";
-				 PreparedStatement stat = conn.prepareStatement(sql1);
-					int rowsInserted = stat.executeUpdate();
-					conn.close();
-					if (rowsInserted > 0) {
-					    System.out.println("swap rejected!");
-					    return true;
-					}
-			 }
-		
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
-
-	@Override
-	public JSONObject unRatedSwap(String userID) throws SQLException {
-		JSONObject jsonObject = new JSONObject();
-	    JSONArray array = new JSONArray();
-	    JSONObject record = new JSONObject();
+	public List<SwapRating> unRatedSwap(String userID) throws SQLException {
+		List<SwapRating> unratedList = new ArrayList<SwapRating>();
 	    try(Connection conn = dataSource.getConnection()) {
 		 String sql ="SELECT A.swap_id, A.acknowledged_date AS Acceptance_Date, \n"
-		 		+ "(SELECT COUNT(*) FROM Swap where swap_id = A.swap_id AND proposer_email = '"+userID+"') My_Role,\n"
+		 		+ "(SELECT COUNT(*) FROM Swap where swap_id = A.swap_id AND proposer_email = ?) My_Role,\n"
 		 		+ "(SELECT name FROM Item where Item_id = S.proposed_item_id) AS Proposed_Item,\n"
 		 		+ "(SELECT name FROM Item where Item_id = S.counterparty_item_id) AS Desired_Item,\n"
-		 		+ "(SELECT nickname FROM User where (email != '"+userID+"' \n"
+		 		+ "(SELECT nickname FROM User where (email != ? \n"
 		 		+ "AND (email = S.counterparty_email OR email = S.proposer_email))) AS Other_User,\n"
 		 		+ "R.rating \n"
 		 		+ " FROM Swap AS S \n"
 		 		+ " JOIN Acknowledgedswap AS A ON S.swap_id = A.swap_id\n"
-		 		+ " LEFT OUTER JOIN Ratedswap AS R ON (R.swap_id = A.swap_id AND R.email = '"+userID+"')\n"
+		 		+ " LEFT OUTER JOIN Ratedswap AS R ON (R.swap_id = A.swap_id AND R.email = ?)\n"
 		 		+ " WHERE S.Swap_id\n"
 		 		+ "IN\n"
 		 		+ "((SELECT Swap.swap_id from Swap\n"
 		 		+ "JOIN Acknowledgedswap\n"
 		 		+ "ON Swap.swap_id = Acknowledgedswap.swap_id \n"
 		 		+ "WHERE Acknowledgedswap.status = 'ACCEPTED' \n"
-		 		+ "AND (Swap.counterparty_email = '"+userID+"' OR  Swap.proposer_email = '"+userID+"') \n"
+		 		+ "AND (Swap.counterparty_email = ? OR  Swap.proposer_email = ?) \n"
 		 		+ "AND Acknowledgedswap.swap_id NOT IN\n"
-		 		+ "(SELECT swap_id from Ratedswap where email = '"+userID+"')))\n"
+		 		+ "(SELECT swap_id from Ratedswap where email = ?)))\n"
 		 		+ "ORDER BY acknowledged_date DESC;\n"
 		 		+ "";
-		 Statement statement = conn.createStatement();
-		 ResultSet resultSet = statement.executeQuery(sql);
+		 PreparedStatement stat = conn.prepareStatement(sql);
+		 stat.setString(1, userID);
+		 stat.setString(2, userID);
+		 stat.setString(3, userID);
+		 stat.setString(4, userID);
+		 stat.setString(5, userID);
+		 stat.setString(6, userID);
+			ResultSet resultSet = stat.executeQuery();
 			
 			while(resultSet.next()) {
-				record.put("Acceptance_Date", resultSet.getString("Acceptance_Date"));
-				if(resultSet.getInt("My_Role") == 1)
-					record.put("My_Role", "Counterparty");
-				else if(resultSet.getInt("My_Role") == 0)
-					record.put("My_Role", "Prpopser");
-				record.put("proposed_item", resultSet.getString("Proposed_Item"));
-				record.put("desired_item", resultSet.getString("Desired_Item"));
-				//record.put("distance", resultSet.getString("distance"));
-				record.put("Other_User", resultSet.getString("Other_User"));
-				array.add(record);
+				SwapRating unrate = new SwapRating();
+				unrate.setAccepted_date(resultSet.getString("Acceptance_Date"));
+				if(resultSet.getInt("My_Role") == 0)
+					unrate.setMyRole("Counterparty");
+				else
+					unrate.setMyRole("Prpopser");
+				
+				unrate.setProposed_item(resultSet.getString("Proposed_Item"));
+				unrate.setDesired_item(resultSet.getString("Desired_Item"));
+				unrate.setOther_user(resultSet.getString("Other_User"));
+				
+				unratedList.add(unrate);
 			}
 			conn.close();
 	    
 	    } catch (SQLException e) {
 			e.printStackTrace();
 		}
-		jsonObject.put("unrated_swap_list", array);
-		return jsonObject;
+		return unratedList;
+	}
+	
+	@Override
+	public History swapHistory(String userID) throws SQLException {
+		History history = new History();
+
+	    try(Connection conn = dataSource.getConnection()) {
+	    	SwapHistorySummary summary = new SwapHistorySummary();
+	    	summary.setMy_role("Prpopser");
+	    	//record.put("My_Role", "Prpopser");
+	    	 String sql ="SELECT COUNT(*) Total from AcknowledgedSwap \n"
+	    	 		+ "WHERE swap_id\n"
+	    	 		+ "IN (SELECT swap_id from Swap WHERE Swap.proposer_email = ?)";
+	    	 PreparedStatement statement = conn.prepareStatement(sql);
+	    	 statement.setString(1, userID);
+			 ResultSet resultSet = statement.executeQuery();
+				
+			if(resultSet.next()) {
+				summary.setTotal_count(resultSet.getInt("Total"));
+			}
+			
+			String sql1 ="SELECT COUNT(*) Accepted from AcknowledgedSwap WHERE swap_id\n"
+					+ "IN (SELECT swap_id from SWAP WHERE Swap.proposer_email = ?)\n"
+					+ "AND status = 'ACCEPTED'";
+			PreparedStatement statement1 = conn.prepareStatement(sql1);
+	    	 statement1.setString(1, userID);
+			 ResultSet rs = statement1.executeQuery();
+			if(rs.next()) {
+				summary.setAccepted_count(rs.getInt("Accepted"));
+			}
+			
+			String sql2 ="SELECT COUNT(*) Rejected from AcknowledgedSwap WHERE swap_id\n"
+					+ "IN (SELECT swap_id from SWAP WHERE Swap.proposer_email = ?)\n"
+					+ "AND status = 'REJECTED';\n";
+			PreparedStatement statement2 = conn.prepareStatement(sql2);
+	    	 statement2.setString(1, userID);
+			 ResultSet res = statement2.executeQuery();
+			if(res.next()) {
+				summary.setRejected_count(res.getInt("Rejected"));
+			}
+			
+			String sql3 ="SELECT count(*) * 100.0 / (SELECT COUNT(*) Rejected from Swap WHERE Swap.proposer_email = ?) Rejected_percentage\n"
+					+ "FROM AcknowledgedSwap \n"
+					+ "WHERE swap_id\n"
+					+ "IN (SELECT swap_id from Swap WHERE Swap.proposer_email =?)\n"
+					+ "AND status = 'REJECTED';\n";
+			PreparedStatement statement3 = conn.prepareStatement(sql3);
+	    	 statement3.setString(1, userID);
+	    	 statement3.setString(2, userID);
+			 ResultSet result = statement3.executeQuery();
+			if(result.next()) {
+				summary.setRejected_percentage(result.getString("Rejected_percentage"));
+			}
+
+			history.setProposer_summary(summary);
+			SwapHistorySummary summary1 = new SwapHistorySummary();
+		    
+			summary1.setMy_role("Counterparty");
+	    	 String sql4 ="SELECT COUNT(*) Total from AcknowledgedSwap \n"
+	    	 		+ "WHERE swap_id\n"
+	    	 		+ "IN (SELECT swap_id from Swap WHERE Swap.counterparty_email = ?)";
+	    	 PreparedStatement statement4 = conn.prepareStatement(sql4);
+	    	 statement4.setString(1, userID);
+			 ResultSet re = statement4.executeQuery();
+				
+			if(re.next()) {
+				summary1.setTotal_count(re.getInt("Total"));
+			}
+			
+			String sql5 ="SELECT COUNT(*) Accepted from AcknowledgedSwap WHERE swap_id\n"
+					+ "IN (SELECT swap_id from SWAP WHERE Swap.counterparty_email = ?)\n"
+					+ "AND status = 'ACCEPTED'";
+			PreparedStatement statement5 = conn.prepareStatement(sql5);
+	    	 statement5.setString(1, userID);
+			 ResultSet resul = statement5.executeQuery();
+			if(resul.next()) {
+				summary1.setAccepted_count(resul.getInt("Accepted"));
+			}
+			
+			String sql6 ="SELECT COUNT(*) Rejected from AcknowledgedSwap WHERE swap_id\n"
+					+ "IN (SELECT swap_id from SWAP WHERE Swap.counterparty_email = ?)\n"
+					+ "AND status = 'REJECTED';\n";
+			PreparedStatement statement6 = conn.prepareStatement(sql6);
+	    	 statement6.setString(1, userID);
+			 ResultSet resu = statement6.executeQuery();
+			if(resu.next()) {
+				summary1.setRejected_count(resu.getInt("Rejected"));
+			}
+			
+			String sql7 ="SELECT count(*) * 100.0 / (SELECT COUNT(*)  Rejected from Swap WHERE Swap.counterparty_email = ?) Rejected_percentage\n"
+					+ "FROM AcknowledgedSwap \n"
+					+ "WHERE swap_id\n"
+					+ "IN (SELECT swap_id from Swap WHERE Swap.counterparty_email = ?)\n"
+					+ "AND status = 'REJECTED';\n";
+			PreparedStatement statement7 = conn.prepareStatement(sql7);
+	    	 statement7.setString(1, userID);
+	    	 statement7.setString(2, userID);
+			 ResultSet results = statement7.executeQuery();
+			if(results.next()) {
+				summary1.setRejected_percentage(results.getString("Rejected_percentage"));
+			}
+			history.setCounterparty_summary(summary1);
+	    	
+		 String sql8 ="SELECT S.proposed_date, A.acknowledged_date AS Accept_Reject_Date, A.status,\n"
+		 		+ "(SELECT name FROM Item WHERE Item_id = S.proposed_item_id) AS Proposed_Item,\n"
+		 		+ "(SELECT name FROM Item WHERE Item_id = S.counterparty_item_id) AS Desired_Item,\n"
+		 		+ "(SELECT COUNT(*) FROM Swap where swap_id = A.swap_id AND proposer_email = ?) My_Role,\n"
+		 		+ "(SELECT nickname FROM User WHERE (email != ? \n"
+		 		+ "AND (email = S.counterparty_email OR email = S.proposer_email))) AS Other_User,\n"
+		 		+ "R.rating FROM Swap AS S\n"
+		 		+ "JOIN AcknowledgedSwap AS A ON S.swap_id = A.swap_id\n"
+		 		+ "LEFT OUTER JOIN RatedSwap AS R ON A.swap_id = R.swap_id AND R.email=?\n"
+		 		+ "WHERE (S.counterparty_email = ? OR  S.proposer_email = ?)\n"
+		 		+ "ORDER BY A.acknowledged_date DESC, S.proposed_date ASC;\n";
+		 PreparedStatement statement8 = conn.prepareStatement(sql8);
+    	 statement8.setString(1, userID);
+    	 statement8.setString(2, userID);
+    	 statement8.setString(3, userID);
+    	 statement8.setString(4, userID);
+    	 statement8.setString(5, userID);
+		 ResultSet resultSe = statement8.executeQuery();
+			List<SwapHistory> swapHistoryList = new ArrayList<SwapHistory>();
+			while(resultSe.next()) {
+				SwapHistory history2 = new SwapHistory();
+				history2.setProposed_Date(resultSe.getDate("proposed_date"));
+				history2.setAcknowledged_date(resultSe.getDate("Accept_Reject_Date"));
+				history2.setSwap_status(resultSe.getString("status"));
+				if(resultSe.getInt("My_Role") == 0)
+					history2.setMy_role("Counterparty");
+				else
+					history2.setMy_role("Prpopser");
+				history2.setProposed_item(resultSe.getString("Proposed_Item"));
+				history2.setDesired_item(resultSe.getString("Desired_Item"));
+				history2.setOther_user(resultSe.getString("Other_User"));
+				
+				swapHistoryList.add(history2);
+			}
+			history.setHistory(swapHistoryList);
+			conn.close();
+	    
+	    } catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return history;
+	}
+
+
+	@Override
+	public SwapDetail swapDetail(String userID,Long swapID) throws SQLException {
+		SwapDetail details = new SwapDetail();
+	    try(Connection conn = dataSource.getConnection()) {
+	    	
+	    //swap details
+		String sql = "SELECT S.proposed_date, A.acknowledged_date, A.status, R.rating,\n"
+				+ "(SELECT COUNT(*) FROM Swap where swap_id = A.swap_id AND proposer_email = ?) My_Role \n"
+				+ "FROM Swap AS S\n"
+				+ "JOIN AcknowledgedSwap AS A ON S.swap_id = A.swap_id\n"
+				+ "LEFT OUTER JOIN RatedSwap AS R ON (R.swap_id = A.swap_id AND R.email =?)\n"
+				+ "WHERE s.swap_id = ?";
+		PreparedStatement statement = conn.prepareStatement(sql);
+		 statement.setString(1, userID);
+    	 statement.setString(2, userID);
+    	 statement.setLong(3,swapID);
+		ResultSet resultSet = statement.executeQuery();
+		if(resultSet.next()) {
+			details.setProposed_Date(resultSet.getDate("proposed_date"));
+			details.setAcknowledged_date(resultSet.getDate("acknowledged_date"));
+			details.setSwap_status(resultSet.getString("status"));
+			details.setRating(resultSet.getInt("rating"));
+			if(resultSet.getInt("My_Role") == 1)
+				details.setMy_role("Proposer");
+			else
+				details.setMy_role("Counterparty");
+
+		}
+			//user details
+		    
+		    String sql2 ="SELECT latitude, longitude FROM user JOIN Location on location.postal_code = user.postal_code where email =?";
+		    PreparedStatement stmt = conn.prepareStatement(sql2);
+		    stmt.setString(1, userID);
+			 ResultSet rs = stmt.executeQuery();
+			 
+			 
+			 
+			 if(rs.next()) {
+				 Double latitude = rs.getDouble("latitude");
+				 Double longitude = rs.getDouble("longitude");
+				 String sql1 = "SELECT User.first_name, User.nickname, User.email email, P.phone_number, P.type, P.share_phone_number, ( 3958.75 * 2 * atan2(sqrt(sin((radians(? - (location.latitude))) / 2) * sin((radians(? - (location.latitude))) / 2) *\n"
+							+ "cos(radians(?)) * cos(radians(?)) *\n"
+							+ "sin((radians((?)- (location.longitude))) / 2) * sin((radians((?)- (location.longitude))) / 2)),\n"
+							+ "sqrt((1-sin((radians(? - (location.latitude))) / 2) * sin((radians(? - (location.latitude))) / 2) *\n"
+							+ "cos(radians(?)) * cos(radians(?)) *\n"
+							+ "sin((radians((?)- (location.longitude))) / 2) * sin((radians((?)- (location.longitude))) / 2))))) AS distance FROM User\n"
+							+ "JOIN Swap ON (Swap.counterparty_email = User.email \n"
+							+ "OR Swap.proposer_email = User.email)\n"
+							+ "LEFT OUTER JOIN PhoneNumber AS P ON P.email = User.email\n"
+							+ "LEFT OUTER JOIN Location ON (User.postal_code = Location.postal_code)\n"
+							+ "WHERE user.email NOT IN (?) and Swap.swap_id = ?";
+
+				 PreparedStatement stat = conn.prepareStatement(sql1);
+					stat.setDouble(1, latitude);
+					stat.setDouble(2, latitude);
+					stat.setDouble(3, latitude);
+					stat.setDouble(4, latitude);
+					stat.setDouble(5, longitude);
+					stat.setDouble(6, longitude);
+					stat.setDouble(7, latitude);
+					stat.setDouble(8, latitude);
+					stat.setDouble(9, latitude);
+					stat.setDouble(10, latitude);
+					stat.setDouble(11, longitude);
+					stat.setDouble(12, longitude);
+					stat.setString(13, userID);
+					stat.setLong(14, swapID);
+					ResultSet rset = stat.executeQuery();
+					if(rset.next()) {
+						details.setFirstName(rset.getString("first_name"));
+						details.setNickName(rset.getString("nickname"));
+						details.setEmail(rset.getString("email"));
+						details.setDistance(rset.getDouble("distance"));
+						if(rset.getString("phone_number") != null)
+						{
+							Phone phone = new Phone();
+							phone.setNumber(rset.getString("phone_number"));
+							phone.setType(Enum.valueOf(PhoneNumberType.class, rset.getString("type").toUpperCase()));
+							if(rset.getInt("share_phone_number") == 1)
+								phone.setShare(true);
+							else 
+								phone.setShare(false);
+							details.setPhone(phone);
+						}
+				 }
+			 }
+		
+			 
+			//proposed Item
+
+			    Item itm1 = new Item();
+			String sql1 = "SELECT Item.item_id,Item.name,Item.type,Item.condition,Item.description from Item\n"
+					+ "JOIN Swap ON Swap.proposed_item_id = Item.item_id \n"
+					+ "WHERE Swap.swap_id = ?";
+			PreparedStatement stmt1 = conn.prepareStatement(sql1);
+			stmt1.setLong(1, swapID);
+			ResultSet rslt = stmt1.executeQuery();
+			if(rslt.next()) {
+				itm1.setId(rslt.getLong("item_id"));
+				itm1.setName(rslt.getString("name"));
+				itm1.setGameType(Enum.valueOf(GameType.class,rslt.getString("type")));
+				itm1.setCondition(Enum.valueOf(Condition.class,rslt.getString("condition")));
+			
+				if(rslt.getString("description") != null)
+					itm1.setDescription(rslt.getString("description"));
+			
+		}
+			details.setProposed_Item(itm1);
+			
+			//DesiredItem Item
+			
+			 Item itm2 = new Item();
+		String sql3 = "SELECT Item.item_id,Item.name,Item.type,Item.condition,Item.description from Item\n"
+				+ "JOIN Swap ON Swap.counterparty_item_id = Item.item_id \n"
+				+ "WHERE Swap.swap_id = ?";
+		PreparedStatement stmt2 = conn.prepareStatement(sql3);
+		stmt2.setLong(1, swapID);
+		ResultSet rsltSt = stmt2.executeQuery();
+		if(rsltSt.next()) {
+		
+			itm2.setId(rsltSt.getLong("item_id"));
+			itm2.setName(rsltSt.getString("name"));
+			itm2.setGameType(Enum.valueOf(GameType.class,rsltSt.getString("type")));
+			itm2.setCondition(Enum.valueOf(Condition.class,rsltSt.getString("condition")));
+		
+			if(rsltSt.getString("description") != null)
+				itm2.setDescription(rsltSt.getString("description"));
+		}
+		details.setDesired_Item(itm2);
+		conn.close();
+		
+	    } catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return details;
+	}
+	
+	@Override
+	public Boolean swapAccept(Long proposerItemID, Long counterPartyItemID) throws SQLException {
+		try(Connection conn = dataSource.getConnection()) {
+			String sql = "SELECT swap_id FROM swap WHERE proposed_item_id = ? and counterparty_item_id=?";
+			 PreparedStatement statement = conn.prepareStatement(sql);
+			 statement.setLong(1, proposerItemID);
+			 statement.setLong(2, counterPartyItemID);
+			 ResultSet rs = statement.executeQuery();
+			 if(rs.next()) {
+				 Long swapID= rs.getLong("swap_id");
+			 
+				 String sql1 = "INSERT INTO acknowledgedswap VALUES (?, 'ACCEPTED', CURRENT_DATE())";
+				 PreparedStatement stat = conn.prepareStatement(sql1);
+				 stat.setLong(1, swapID);
+					int rowsInserted = stat.executeUpdate();
+					conn.close();
+					if (rowsInserted > 0) {
+					    return true;
+					}
+			 }
+		
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
 	}
 
 	@Override
-	public Boolean upadteSwapRating(int swapID, String userID, int rating) throws SQLException {
+	public Boolean swapReject(Long proposerItemID, Long counterPartyItemID) throws SQLException {
 		try(Connection conn = dataSource.getConnection()) {
-			String sql = "INSERT into RatedSwap (swap_id,email,rating)\n"
-					+ "VALUES ('"+swapID+"','"+userID+"','"+rating+"');";
+			String sql = "SELECT swap_id FROM swap WHERE proposed_item_id = ? and counterparty_item_id= ?";
+			PreparedStatement statement = conn.prepareStatement(sql);
+			statement.setLong(1, proposerItemID);
+			 statement.setLong(2, counterPartyItemID);
+			 ResultSet rs = statement.executeQuery();
+			 if(rs.next()) {
+				 Long swapID= rs.getLong("swap_id");
+			 
+				 String sql1 = "INSERT INTO acknowledgedswap VALUES ( ?, 'REJECTED', CURRENT_DATE())";
+				 PreparedStatement stat = conn.prepareStatement(sql1);
+				 stat.setLong(1, swapID);
+					int rowsInserted = stat.executeUpdate();
+					conn.close();
+					if (rowsInserted > 0) {
+					    return true;
+					}
+			 }
+		
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	@Override
+	public Boolean upadteSwapRating(Long swapID, String userID, int rating) throws SQLException {
+		try(Connection conn = dataSource.getConnection()) {
+			String sql = "INSERT into RatedSwap (swap_id,email,rating) VALUES (?,?,?)";
 			
 			PreparedStatement stat = conn.prepareStatement(sql);
+			stat.setLong(1, swapID);
+			stat.setString(2,userID);
+			stat.setInt(3, rating);
 			int rowsInserted = stat.executeUpdate();
 			conn.close();
 			if (rowsInserted > 0) {
-			    System.out.println("swap rated!");
 			    return true;
 			}
 			 
@@ -264,256 +590,5 @@ public class SwapRepositoryImpl implements SwapRepository{
 		}
 		return false;
 		}
-
-	@Override
-	public JSONObject swapHistory(String userID) throws SQLException {
-		JSONObject jsonObject = new JSONObject();
-	    JSONArray array = new JSONArray();
-	    JSONObject record = new JSONObject();
-	    try(Connection conn = dataSource.getConnection()) {
-	    	record.put("My_Role", "Prpopser");
-	    	 String sql ="SELECT COUNT(*) Total from AcknowledgedSwap \n"
-	    	 		+ "WHERE swap_id\n"
-	    	 		+ "IN (SELECT swap_id from Swap WHERE Swap.proposer_email = '"+userID+"')";
-	    	 Statement statement = conn.createStatement();
-			 ResultSet resultSet = statement.executeQuery(sql);
-				
-			if(resultSet.next()) {
-				record.put("Total", resultSet.getString("Total"));
-			}
-			
-			String sql1 ="SELECT COUNT(*) Accepted from AcknowledgedSwap WHERE swap_id\n"
-					+ "IN (SELECT swap_id from SWAP WHERE Swap.proposer_email = '"+userID+"')\n"
-					+ "AND status = 'ACCEPTED'";
-
-			 ResultSet rs = statement.executeQuery(sql1);
-			if(rs.next()) {
-				record.put("Accepted", rs.getInt("Accepted"));
-			}
-			
-			String sql2 ="SELECT COUNT(*) Rejected from AcknowledgedSwap WHERE swap_id\n"
-					+ "IN (SELECT swap_id from SWAP WHERE Swap.proposer_email = '"+userID+"')\n"
-					+ "AND status = 'REJECTED';\n";
-
-			 ResultSet res = statement.executeQuery(sql2);
-			if(res.next()) {
-				record.put("Rejected", res.getString("Rejected"));
-			}
-			
-			String sql3 ="SELECT count(*) * 100.0 / (SELECT COUNT(*) Rejected from Swap WHERE Swap.proposer_email = '"+userID+"') Rejected_percentage\n"
-					+ "FROM AcknowledgedSwap \n"
-					+ "WHERE swap_id\n"
-					+ "IN (SELECT swap_id from Swap WHERE Swap.proposer_email = '"+userID+"')\n"
-					+ "AND status = 'REJECTED';\n";
-
-			 ResultSet result = statement.executeQuery(sql3);
-			if(result.next()) {
-				record.put("Rejected_percentage", result.getString("Rejected_percentage"));
-			}
-			array.add(record);
-	    	jsonObject.put("As_Proposer_count", array);
-	    	
-	    	JSONArray array1 = new JSONArray();
-		    JSONObject record1 = new JSONObject();
-		    
-		    record1.put("My_Role", "Counterparty");
-	    	 String sql4 ="SELECT COUNT(*) Total from AcknowledgedSwap \n"
-	    	 		+ "WHERE swap_id\n"
-	    	 		+ "IN (SELECT swap_id from Swap WHERE Swap.counterparty_email = '"+userID+"')";
-			 ResultSet re = statement.executeQuery(sql4);
-				
-			if(re.next()) {
-				record1.put("Total", re.getString("Total"));
-			}
-			
-			String sql5 ="SELECT COUNT(*) Accepted from AcknowledgedSwap WHERE swap_id\n"
-					+ "IN (SELECT swap_id from SWAP WHERE Swap.counterparty_email = '"+userID+"')\n"
-					+ "AND status = 'ACCEPTED'";
-
-			 ResultSet resul = statement.executeQuery(sql5);
-			if(resul.next()) {
-				record1.put("Accepted", resul.getString("Accepted"));
-			}
-			
-			String sql6 ="SELECT COUNT(*) Rejected from AcknowledgedSwap WHERE swap_id\n"
-					+ "IN (SELECT swap_id from SWAP WHERE Swap.counterparty_email = '"+userID+"')\n"
-					+ "AND status = 'REJECTED';\n";
-
-			 ResultSet resu = statement.executeQuery(sql6);
-			if(resu.next()) {
-				record1.put("Rejected", resu.getString("Rejected"));
-			}
-			
-			String sql7 ="SELECT count(*) * 100.0 / (SELECT COUNT(*)  Rejected from Swap WHERE Swap.counterparty_email = '"+userID+"') Rejected_percentage\n"
-					+ "FROM AcknowledgedSwap \n"
-					+ "WHERE swap_id\n"
-					+ "IN (SELECT swap_id from Swap WHERE Swap.counterparty_email = '"+userID+"')\n"
-					+ "AND status = 'REJECTED';\n";
-
-			 ResultSet results = statement.executeQuery(sql7);
-			if(results.next()) {
-				record1.put("Rejected_percentage", results.getString("Rejected_percentage"));
-			}
-			array1.add(record1);
-	    	jsonObject.put("As_Counterparty_count", array1);
-	    	
-	    	JSONArray array2 = new JSONArray();
-		    JSONObject record2 = new JSONObject();
-		 String sql8 ="SELECT S.proposed_date, A.acknowledged_date AS Accept_Reject_Date, A.status,\n"
-		 		+ "(SELECT name FROM Item WHERE Item_id = S.proposed_item_id) AS Proposed_Item,\n"
-		 		+ "(SELECT name FROM Item WHERE Item_id = S.counterparty_item_id) AS Desired_Item,\n"
-		 		+ "(SELECT COUNT(*) FROM Swap where swap_id = A.swap_id AND proposer_email = '"+userID+"') My_Role,\n"
-		 		+ "(SELECT nickname FROM User WHERE (email != '"+userID+"' \n"
-		 		+ "AND (email = S.counterparty_email OR email = S.proposer_email))) AS Other_User,\n"
-		 		+ "R.rating FROM Swap AS S\n"
-		 		+ "JOIN AcknowledgedSwap AS A ON S.swap_id = A.swap_id\n"
-		 		+ "LEFT OUTER JOIN RatedSwap AS R ON A.swap_id = R.swap_id AND R.email='"+userID+"'\n"
-		 		+ "WHERE (S.counterparty_email = '"+userID+"' OR  S.proposer_email = '"+userID+"')\n"
-		 		+ "ORDER BY A.acknowledged_date DESC, S.proposed_date ASC;\n";
-
-		 ResultSet resultSe = statement.executeQuery(sql8);
-			
-			while(resultSe.next()) {
-				record2.put("proposed_date", resultSe.getDate("proposed_date"));
-				record2.put("acknowledged_date", resultSe.getDate("Accept_Reject_Date"));
-				record2.put("status", resultSe.getString("status"));
-				if(resultSe.getInt("My_Role") == 1)
-					record2.put("My_Role", "Counterparty");
-				else if(resultSe.getInt("My_Role") == 0)
-					record2.put("My_Role", "Prpopser");
-				record2.put("proposed_item", resultSe.getString("Proposed_Item"));
-				record2.put("desired_item", resultSe.getString("Desired_Item"));
-				//record.put("distance", resultSet.getString("distance"));
-				record2.put("Other_User", resultSe.getString("Other_User"));
-				array2.add(record2);
-			}
-			jsonObject.put("Swap_history", array2);
-			conn.close();
-	    
-	    } catch (SQLException e) {
-			e.printStackTrace();
-		}
-		//jsonObject.put("unrated_swap_list", array2);
-		return jsonObject;
-	}
-
-	@Override
-	public JSONObject swapDetail(String userID,int swapID) throws SQLException {
-		JSONObject jsonObject = new JSONObject();
-	    JSONArray array = new JSONArray();
-	    JSONObject record = new JSONObject();
-	    try(Connection conn = dataSource.getConnection()) {
-	    	
-	    //swap details
-		String sql = "SELECT S.proposed_date, A.acknowledged_date, A.status, R.rating,\n"
-				+ "(SELECT COUNT(*) FROM Swap where swap_id = A.swap_id AND proposer_email = '"+userID+"') My_Role \n"
-				+ "FROM Swap AS S\n"
-				+ "JOIN AcknowledgedSwap AS A ON S.swap_id = A.swap_id\n"
-				+ "LEFT OUTER JOIN RatedSwap AS R ON (R.swap_id = A.swap_id AND R.email ='"+userID+"')\n"
-				+ "WHERE s.swap_id = '"+swapID+"'";
-		Statement statement = conn.createStatement();
-		ResultSet resultSet = statement.executeQuery(sql);
-		if(resultSet.next()) {
-			record.put("proposed_date", resultSet.getDate("proposed_date"));
-			record.put("acknowledged_date", resultSet.getDate("acknowledged_date"));
-			record.put("status", resultSet.getString("status"));
-			record.put("rating", resultSet.getString("rating"));
-			if(resultSet.getInt("My_Role") == 1)
-				record.put("My_Role", "Proposer");
-			else if(resultSet.getInt("My_Role") == 0)
-				record.put("My_Role", "Counterparty");
-			
-			jsonObject.put("swap_details", record);
-		}
-			//user details
-
-		    JSONObject record1 = new JSONObject();
-		    
-		    String sql2 ="SELECT latitude, longitude FROM user JOIN Location on location.postal_code = user.postal_code where email ='"+userID+"'";
-			 ResultSet rs = statement.executeQuery(sql2);
-			 
-			 
-			 if(rs.next()) {
-				 Double latitude = rs.getDouble("latitude");
-				 Double longitude = rs.getDouble("longitude");
-				 String sql1 = "SELECT User.first_name, User.nickname, User.email email, P.phone_number, P.type, P.share_phone_number, ( 3958.75 * 2 * atan2(sqrt(sin((radians("+latitude+" - (location.latitude))) / 2) * sin((radians("+latitude+" - (location.latitude))) / 2) *\n"
-							+ "cos(radians("+latitude+")) * cos(radians("+latitude+")) *\n"
-							+ "sin((radians(("+longitude+")- (location.longitude))) / 2) * sin((radians(("+longitude+")- (location.longitude))) / 2)),\n"
-							+ "sqrt((1-sin((radians("+latitude+" - (location.latitude))) / 2) * sin((radians("+latitude+" - (location.latitude))) / 2) *\n"
-							+ "cos(radians("+latitude+")) * cos(radians("+latitude+")) *\n"
-							+ "sin((radians(("+longitude+")- (location.longitude))) / 2) * sin((radians(("+longitude+")- (location.longitude))) / 2))))) AS distance FROM User\n"
-							+ "JOIN Swap ON (Swap.counterparty_email = User.email \n"
-							+ "OR Swap.proposer_email = User.email)\n"
-							+ "JOIN PhoneNumber AS P ON P.email = User.email\n"
-							+ "JOIN Location ON (User.postal_code = Location.postal_code)\n"
-							+ "WHERE user.email NOT IN ('"+userID+"') and Swap.swap_id = '"+swapID+"'";
-
-					ResultSet rset = statement.executeQuery(sql1);
-					if(rset.next()) {
-						record1.put("first_name", rset.getString("first_name"));
-						record1.put("nickname", rset.getString("nickname"));
-						record1.put("email", rset.getString("email"));
-						record1.put("phone_number", rset.getString("phone_number"));
-						record1.put("type", rset.getString("type"));
-						record1.put("distance", rset.getString("distance"));
-						if(rset.getInt("share_phone_number") == 1)
-							record1.put("share_phone_number", "Yes");
-						else if(rset.getInt("share_phone_number") == 0)
-							record1.put("share_phone_number", "No");
-
-				 }
-				jsonObject.put("User_details", record1);
-			 }
-		
-			 
-			//proposed Item
-
-			    JSONObject record2 = new JSONObject();
-			String sql1 = "SELECT Item.item_id,Item.name,Item.type,Item.condition,Item.description from Item\n"
-					+ "JOIN Swap ON Swap.proposed_item_id = Item.item_id \n"
-					+ "WHERE Swap.swap_id = '"+swapID+"'";
-
-			ResultSet rslt = statement.executeQuery(sql1);
-			if(rslt.next()) {
-				record2.put("item_id", rslt.getInt("item_id"));
-				record2.put("name", rslt.getString("name"));
-				record2.put("type", rslt.getString("type"));
-				record2.put("condition", rslt.getString("condition"));
-			
-				if(rslt.getString("description") != null)
-					record2.put("description", rslt.getString("description"));
-				
-
-				jsonObject.put("Proposed_Item", record2);
-			
-		}
-			
-			//DesiredItem Item
-			
-		    JSONObject record3 = new JSONObject();
-		String sql3 = "SELECT Item.item_id,Item.name,Item.type,Item.condition,Item.description from Item\n"
-				+ "JOIN Swap ON Swap.counterparty_item_id = Item.item_id \n"
-				+ "WHERE Swap.swap_id = '"+swapID+"'";
-
-		ResultSet rsltSt = statement.executeQuery(sql3);
-		if(rsltSt.next()) {
-			record3.put("item_id", rsltSt.getInt("item_id"));
-			record3.put("name", rsltSt.getString("name"));
-			record3.put("type", rsltSt.getString("type"));
-			record3.put("condition", rsltSt.getString("condition"));
-		
-			if(rsltSt.getString("description") != null)
-				record3.put("description", rsltSt.getString("description"));
-			
-			jsonObject.put("Desired_item", record3);
-		
-		}
-		conn.close();
-		
-	    } catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return jsonObject;
-	}
 
 }

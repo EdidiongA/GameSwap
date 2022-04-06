@@ -1,13 +1,19 @@
 package com.gatech.gameswap.repository;
 
-import java.sql.SQLException;
+import java.util.List;
 
+import com.gatech.gameswap.model.Location;
 import com.gatech.gameswap.model.User;
 
 public interface UserRepository {
 
-	Boolean createUser(User user) throws SQLException;
-	Boolean updateUser(User user) throws SQLException;
-	Boolean login(String userId, String password) throws SQLException;
-	
+	Boolean createUser(User user);
+	Boolean updateUser(User user);
+	Boolean authenticateUser(String email, String password);
+	User getUser(String email);
+	Boolean checkEmailExists(String email);
+	Boolean checkPhoneExists(String phone);
+	Double getRating(String email);
+	List<Location> getLocations();
+
 }
