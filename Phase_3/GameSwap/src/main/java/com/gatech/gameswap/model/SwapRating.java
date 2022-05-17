@@ -1,13 +1,28 @@
 package com.gatech.gameswap.model;
 
 public class SwapRating {
+	private Long swap_id;
 	private String accepted_date;
 	private String myRole;
 	private String proposed_item;
 	private String desired_item;
 	private String other_user;
+	private String other_user_id;
 	
 	
+	
+	public Long getSwap_id() {
+		return swap_id;
+	}
+	public void setSwap_id(Long swap_id) {
+		this.swap_id = swap_id;
+	}
+	public String getOther_user_id() {
+		return other_user_id;
+	}
+	public void setOther_user_id(String other_user_id) {
+		this.other_user_id = other_user_id;
+	}
 	public String getAccepted_date() {
 		return accepted_date;
 	}

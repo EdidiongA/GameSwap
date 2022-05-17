@@ -1,20 +1,21 @@
 <h1>Search Items</h1>
+
 <div style="margin-left: 15px;">
 <mat-radio-group class = "tp-radio-group" [(ngModel)] = "searchSelected">  
     <mat-radio-button class = "tp-radio-button" value="Bykeyword">
         By keyword:     
-        <input matInput [(ngModel)]="keyword">        
+        <input [(ngModel)]="keyword">        
     </mat-radio-button>
     <mat-radio-button class = "tp-radio-button" value="Bymypostal">
         In my postal code               
     </mat-radio-button>
     <mat-radio-button class = "tp-radio-button" value="Bymiles">
         Within miles:        
-        <input matInput [(ngModel)]="miles">        
+        <input [(ngModel)]="miles">        
     </mat-radio-button>
     <mat-radio-button class = "tp-radio-button" value="Byinpostal">
         In postal code:        
-        <input matInput [(ngModel)]="inpostal">        
+        <input  [(ngModel)]="inpostal">        
     </mat-radio-button>
 
  </mat-radio-group>
@@ -22,14 +23,15 @@
     <button mat-raised-button style="margin-top: 15px;" color="primary" (click)="onSearch()" >Search</button>
 </div>
 
-<h3 style="margin-top: 15px;">Search results: {{searchString}}</h3>
-<div style="margin-left: 15px; margin-right: 15px;">
-  <div class="example-container mat-elevation-z8" >
-    <mat-table #table [dataSource]="dataSource">
+<h3 style="margin-top: 15px;">Search results: {{searchResult}}</h3>
+<!-- <div style="margin-left: 15px; margin-right: 15px;"> -->
+  <div class="container-fluid">
+  <!-- <div class="example-container mat-elevation-z8 " > -->
+    <mat-table #table [dataSource]="dataSource" class="mat-elevation-z8 fullwidth">
       
       <ng-container matColumnDef="Item #">
-        <mat-header-cell *matHeaderCellDef> Item # </mat-header-cell>
-        <mat-cell *matCellDef="let element;"> {{element.itemId}}</mat-cell>
+        <mat-header-cell *matHeaderCellDef class="col-1"> Item # </mat-header-cell>
+        <mat-cell class="col-1" *matCellDef="let element;"> {{element.itemId}}</mat-cell>
       </ng-container>
 
       
@@ -40,8 +42,8 @@
 
       
       <ng-container matColumnDef="Title">
-        <mat-header-cell *matHeaderCellDef> Title </mat-header-cell>
-        <mat-cell *matCellDef="let element"> {{element.title}} </mat-cell>
+        <mat-header-cell *matHeaderCellDef class="col-2"> Title </mat-header-cell>
+        <mat-cell *matCellDef="let element" class="col-2 {{element.titleClass}}"> {{element.title}} </mat-cell>
       </ng-container>
 
       
@@ -51,8 +53,8 @@
       </ng-container>
       
           <ng-container matColumnDef="Description">
-        <mat-header-cell *matHeaderCellDef> Description </mat-header-cell>
-        <mat-cell *matCellDef="let element"> {{element.description}} </mat-cell>
+        <mat-header-cell *matHeaderCellDef class="col-4"> Description </mat-header-cell>
+        <mat-cell *matCellDef="let element" class="col-4 {{element.descriptionClass}}"> {{element.description}} </mat-cell>
       </ng-container>
 
           <ng-container matColumnDef="Distance">
@@ -71,9 +73,10 @@
       <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
       <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
     </mat-table>
-  </div>
+  <!-- </div> -->
 </div>
 </div>
+
 <div>
   <button mat-raised-button color="primary" style="margin-top: 15px;" (click)="onBackToMain()" >Back to Main Menu</button>
 </div>

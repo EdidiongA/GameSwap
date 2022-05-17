@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { GameswapService } from '../gameswap.service';
 import { Subscription } from 'rxjs';
+import { TouchSequence } from 'selenium-webdriver';
 
 @Component({
   selector: 'app-welcome',
@@ -22,6 +23,8 @@ export class WelcomeComponent implements OnInit, OnDestroy {
   myrating
   unacceptedSwaps
   unratedSwaps
+  unacceptedSwapsClass
+  unratedSwapsClass
   ngOnInit(): void {
 
     this.subscriptionUser = this.gameswapService.currentUser.subscribe(user => this.userId = user)
@@ -31,10 +34,12 @@ export class WelcomeComponent implements OnInit, OnDestroy {
       console.log(JSON.stringify(data));
                   
       this.name = data.firstName + ' ' + data.lastName
-      this.myrating = data.userStats.rating
+      this.myrating = data.userStats.rating || "None"
       this.unacceptedSwaps = data.userStats.unacceptedSwapCount
       this.unratedSwaps = data.userStats.unratedSwapCount
-    
+
+      this.unacceptedSwapsClass = (data.userStats.unAccpetedDays || this.unacceptedSwaps > 5) ? "highlight" : "";
+      this.unratedSwapsClass = this.unratedSwaps > 2 ? "highlight" : "";
     }).catch((error)=>{
       console.log("Promise rejected with " + JSON.stringify(error));
     });  

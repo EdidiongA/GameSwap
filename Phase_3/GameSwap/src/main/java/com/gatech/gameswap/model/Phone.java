@@ -6,7 +6,6 @@ public class Phone {
 	public enum PhoneNumberType {
 		Home, Work, Mobile
 	}
-	
 	private String number;
 	private PhoneNumberType type;
 	private boolean share;

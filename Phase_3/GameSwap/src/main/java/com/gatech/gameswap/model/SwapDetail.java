@@ -8,9 +8,9 @@ public class SwapDetail {
 	private Date proposed_Date;
 	private Date acknowledged_date;
 	private String swap_status;
-	private int rating;
+	private String rating;
 	
-	private Double distance;
+	private String distance;
 	private String email;
 	private String firstName;
 	private String nickName;
@@ -42,16 +42,16 @@ public class SwapDetail {
 	public void setSwap_status(String swap_status) {
 		this.swap_status = swap_status;
 	}
-	public int getRating() {
+	public String getRating() {
 		return rating;
 	}
-	public void setRating(int rating) {
+	public void setRating(String rating) {
 		this.rating = rating;
 	}
-	public Double getDistance() {
+	public String getDistance() {
 		return distance;
 	}
-	public void setDistance(Double distance) {
+	public void setDistance(String distance) {
 		this.distance = distance;
 	}
 	public String getEmail() {

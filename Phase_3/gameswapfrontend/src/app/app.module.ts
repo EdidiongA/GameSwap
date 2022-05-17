@@ -28,6 +28,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { AcknowledgeswapComponent } from './acknowledgeswap/acknowledgeswap.component';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { SwapdetailsComponent } from './swapdetails/swapdetails.component';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { ViewacceptrejectitemComponent } from './viewacceptrejectitem/viewacceptrejectitem.component';
+import { RateswapComponent } from './rateswap/rateswap.component';
+import { MyitemdetailsComponent } from './myitemdetails/myitemdetails.component';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -42,9 +48,13 @@ import { SwapdetailsComponent } from './swapdetails/swapdetails.component';
     ProposeswapComponent,
     ViewitemComponent,
     AcknowledgeswapComponent,
-    SwapdetailsComponent
+    SwapdetailsComponent,
+    ViewacceptrejectitemComponent,
+    RateswapComponent,
+    MyitemdetailsComponent,    
   ],
   imports: [
+    MatDialogModule,
     MatInputModule,
     MatTableModule,
     MatButtonModule,
@@ -66,7 +76,8 @@ import { SwapdetailsComponent } from './swapdetails/swapdetails.component';
     MatButtonModule,
     MatCheckboxModule,
     MatSelectModule,
-    MatAutocompleteModule
+    MatAutocompleteModule,
+    MatSnackBarModule
   ],
   providers: [],
   bootstrap: [AppComponent]

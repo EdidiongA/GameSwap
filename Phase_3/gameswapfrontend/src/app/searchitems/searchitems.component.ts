@@ -4,7 +4,7 @@ import {SelectionModel} from "@angular/cdk/collections";
 import { GameSwapItem } from '../models';
 import { GameswapService } from '../gameswap.service';
 import { Subscription } from 'rxjs';
-
+import { MatTableDataSource } from '@angular/material/table';
 const queryParamName = "pippo";
 
 @Component({
@@ -15,6 +15,9 @@ const queryParamName = "pippo";
 export class SearchitemsComponent implements OnInit, OnDestroy {
 
   
+ELEMENT_DATA: GameSwapItem[] = [ ];
+
+  searchResult
   item: GameSwapItem
   subscriptionItem: Subscription;
   keyword
@@ -22,7 +25,7 @@ export class SearchitemsComponent implements OnInit, OnDestroy {
   inpostal
   searchSelected
   displayedColumns = ['Item #', 'Game Type', 'Title', 'Condition', 'Description', 'Distance', 'Details'];
-  dataSource
+  dataSource = new MatTableDataSource<GameSwapItem>(this.ELEMENT_DATA);
   selection: SelectionModel<GameSwapItem> = new SelectionModel<GameSwapItem>(false, []);
   
   constructor(private router:Router,
@@ -35,32 +38,32 @@ export class SearchitemsComponent implements OnInit, OnDestroy {
     this.subscriptionItem = this.gameswapService.currentItem.subscribe(item => this.item = this.item)
 
 
-    ELEMENT_DATA.splice(0,ELEMENT_DATA.length);   
+    this.ELEMENT_DATA.splice(0,this.ELEMENT_DATA.length);   
 
-    ELEMENT_DATA.push(
-      {
-        itemId: 1,
-        type: 'video game',
-        title: 'tetris',
-        condition: 'good',
-        description: '',
-        distance: 0.0,
-        details: 'details',
-        selected: false
-      })   
-      ELEMENT_DATA.push(
-        {
-          itemId: 2,
-          type: 'jigsaw puzzle',
-          title: 'Georgia Tech',
-          condition: 'mint',
-          description: 'blah blah',
-          distance: 10.8,
-          details: 'details',
-          selected: false
-        })   
+    // ELEMENT_DATA.push(
+    //   {
+    //     itemId: 1,
+    //     type: 'video game',
+    //     title: 'tetris',
+    //     condition: 'good',
+    //     description: '',
+    //     distance: 0.0,
+    //     details: 'details',
+    //     selected: false
+    //   })   
+    //   ELEMENT_DATA.push(
+    //     {
+    //       itemId: 2,
+    //       type: 'jigsaw puzzle',
+    //       title: 'Georgia Tech',
+    //       condition: 'mint',
+    //       description: 'blah blah',
+    //       distance: 10.8,
+    //       details: 'details',
+    //       selected: false
+    //     })   
            
-    this.dataSource = ELEMENT_DATA;
+    // this.dataSource = ELEMENT_DATA;
   }
 
   ngOnDestroy() {
@@ -80,23 +83,72 @@ export class SearchitemsComponent implements OnInit, OnDestroy {
 
   onSearch() {
     console.log(this.searchSelected)
+    var searchKey = ""
     if(this.searchSelected == 'Bykeyword')
     {        
-      this.searchString = 'Keyword "' + this.keyword + '"'
+      this.searchString = 'Keyword'
+      searchKey = this.keyword      
     }
     else if(this.searchSelected == 'Bymypostal')
     {
-      this.searchString = 'My Postal' 
+      this.searchString = 'MyPostalCode'       
     }
     else if(this.searchSelected == 'Bymiles')
     {
-      this.searchString = 'Within "' + this.miles + '" miles'
+      this.searchString = 'Miles'
+      searchKey = this.miles
     }
     else if(this.searchSelected == 'Byinpostal')
     {
-      this.searchString = 'In Postal "' + this.inpostal + '"'
+      this.searchString = 'PostalCode'
+      searchKey = this.inpostal
     }
+        
+    this.searchResult = this.searchString + ' "'+ searchKey + '"'
     
+    const promise = this.gameswapService.searchItem(this.searchString, searchKey)
+    promise.then((data)=>{
+      console.log(JSON.stringify(data));
+
+      this.ELEMENT_DATA.splice(0,this.ELEMENT_DATA.length);
+
+      if(data.length == 0)
+      {
+        this.searchResult = 'Sorry, no results found!'        
+      }
+      else
+      {
+        data.forEach(element => {
+          let titleClass = "";
+          let descriptionClass = "";
+          if (this.searchSelected == 'Bykeyword') {
+            if (element['item'].name.toLowerCase().includes(searchKey.toLowerCase())) {
+              titleClass = 'highlight';
+            }
+            if (element['item'].description && element['item'].description.toLowerCase().includes(searchKey.toLowerCase())) {
+              descriptionClass = 'highlight';
+            }
+          }
+          this.ELEMENT_DATA.push(
+            {
+              itemId: element['item'].id,
+              type: element['item'].gameType,
+              title: element['item'].name,
+              titleClass,
+              condition: element['item'].condition,
+              description: element['item'].description,
+              descriptionClass,
+              distance: element.distance,
+              details: 'details',
+              selected: false
+            })   
+          
+        });
+      }
+      this.dataSource = new MatTableDataSource<GameSwapItem>(this.ELEMENT_DATA);
+    }).catch((error)=>{
+      console.log("Promise rejected with " + JSON.stringify(error));
+    }); 
     console.log(this.searchString)
   }
 
@@ -109,6 +161,3 @@ export class SearchitemsComponent implements OnInit, OnDestroy {
   }
  
 }
-
-const ELEMENT_DATA: GameSwapItem[] = [ 
-];

@@ -4,14 +4,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Formatter;
 import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -19,8 +17,8 @@ import com.gatech.gameswap.model.History;
 import com.gatech.gameswap.model.Item;
 import com.gatech.gameswap.model.Phone;
 import com.gatech.gameswap.model.Phone.PhoneNumberType;
-import com.gatech.gameswap.model.Item.Condition;
-import com.gatech.gameswap.model.Item.GameType;
+//import com.gatech.gameswap.model.Item.Condition;
+//import com.gatech.gameswap.model.Item.GameType;
 import com.gatech.gameswap.model.Swap;
 import com.gatech.gameswap.model.SwapAck;
 import com.gatech.gameswap.model.SwapDetail;
@@ -99,8 +97,8 @@ public class SwapRepositoryImpl implements SwapRepository{
 						Item itm = new Item();
 						itm.setId(result.getLong("item_id"));
 						itm.setName(result.getString("name"));
-						itm.setGameType(Enum.valueOf(GameType.class,result.getString("type")));
-						itm.setCondition(Enum.valueOf(Condition.class,result.getString("condition")));
+						itm.setGameType(result.getString("type"));
+						itm.setCondition(result.getString("condition"));
 					items.add(itm);
 					}
 
@@ -127,7 +125,7 @@ public class SwapRepositoryImpl implements SwapRepository{
 				Double latitude = rs.getDouble("latitude");
 				Double longitude = rs.getDouble("longitude");
 				
-				String sql1 = "SELECT Swap.proposed_date, User.nickname proposer, item1.name proposed_item ,item2.name desired_item,\n"
+				String sql1 = "SELECT Swap.proposed_date, User.nickname proposer, item1.name proposed_item ,item2.name desired_item,item1.item_id proposed_Item_id, item2.item_id counterparty_item_id,\n"
 						+ "(SELECT AVG(rating) Rating FROM ratedswap WHERE email=proposer_email GROUP BY email) Rating,\n"
 						+ "( 3958.75 * 2 * atan2(sqrt(sin((radians(? - (location.latitude))) / 2) * sin((radians(? - (location.latitude))) / 2) *\n"
 						+ "cos(radians(?)) * cos(radians(?)) *\n"
@@ -161,12 +159,21 @@ public class SwapRepositoryImpl implements SwapRepository{
 				ResultSet resultSet = stat.executeQuery();
 				while(resultSet.next()) {
 					SwapAck ack = new SwapAck();
+		
 					ack.setProposed_date(resultSet.getString("proposed_date"));
 					ack.setProposer(resultSet.getString("proposer"));
 					ack.setProposed_item(resultSet.getString("proposed_item"));
 					ack.setDesired_item(resultSet.getString("desired_item"));
-					ack.setDistance(resultSet.getDouble("distance"));
-					ack.setRating(resultSet.getInt("Rating"));
+					//ack.setDistance(Math.round(resultSet.getDouble("distance")*100)/10d);
+					//ack.setRating(Math.round(resultSet.getDouble("rating")*100)/100d);
+					Formatter formatter = new Formatter();
+			        formatter.format("%.1f", resultSet.getDouble("distance"));
+			        ack.setDistance(formatter.toString());
+			        Formatter formatter1 = new Formatter();
+			        formatter1.format("%.2f", resultSet.getDouble("rating"));
+			        ack.setRating(formatter1.toString());
+					ack.setProposed_item_id(resultSet.getInt("proposed_Item_id"));
+					ack.setCounterparty_item_id(resultSet.getInt("counterparty_item_id"));
 					ackList.add(ack);
 				}
 				conn.close();
@@ -181,27 +188,27 @@ public class SwapRepositoryImpl implements SwapRepository{
 	public List<SwapRating> unRatedSwap(String userID) throws SQLException {
 		List<SwapRating> unratedList = new ArrayList<SwapRating>();
 	    try(Connection conn = dataSource.getConnection()) {
-		 String sql ="SELECT A.swap_id, A.acknowledged_date AS Acceptance_Date, \n"
-		 		+ "(SELECT COUNT(*) FROM Swap where swap_id = A.swap_id AND proposer_email = ?) My_Role,\n"
-		 		+ "(SELECT name FROM Item where Item_id = S.proposed_item_id) AS Proposed_Item,\n"
-		 		+ "(SELECT name FROM Item where Item_id = S.counterparty_item_id) AS Desired_Item,\n"
-		 		+ "(SELECT nickname FROM User where (email != ? \n"
-		 		+ "AND (email = S.counterparty_email OR email = S.proposer_email))) AS Other_User,\n"
-		 		+ "R.rating \n"
-		 		+ " FROM Swap AS S \n"
-		 		+ " JOIN Acknowledgedswap AS A ON S.swap_id = A.swap_id\n"
-		 		+ " LEFT OUTER JOIN Ratedswap AS R ON (R.swap_id = A.swap_id AND R.email = ?)\n"
-		 		+ " WHERE S.Swap_id\n"
-		 		+ "IN\n"
-		 		+ "((SELECT Swap.swap_id from Swap\n"
-		 		+ "JOIN Acknowledgedswap\n"
-		 		+ "ON Swap.swap_id = Acknowledgedswap.swap_id \n"
-		 		+ "WHERE Acknowledgedswap.status = 'ACCEPTED' \n"
-		 		+ "AND (Swap.counterparty_email = ? OR  Swap.proposer_email = ?) \n"
-		 		+ "AND Acknowledgedswap.swap_id NOT IN\n"
-		 		+ "(SELECT swap_id from Ratedswap where email = ?)))\n"
-		 		+ "ORDER BY acknowledged_date DESC;\n"
-		 		+ "";
+	    	 String sql ="SELECT A.swap_id, A.acknowledged_date AS Acceptance_Date, \n"
+	 		 		+ "(SELECT COUNT(*) FROM Swap where swap_id = A.swap_id AND proposer_email = ?) My_Role,\n"
+	 		 		+ "(SELECT name FROM Item where Item_id = S.proposed_item_id) AS Proposed_Item,\n"
+	 		 		+ "(SELECT name FROM Item where Item_id = S.counterparty_item_id) AS Desired_Item,\n"
+	 		 		+ "(SELECT nickname FROM User where (email != ? \n"
+	 		 		+ "AND (email = S.counterparty_email OR email = S.proposer_email))) AS Other_User,\n"
+	 		 		+ "(SELECT email FROM User WHERE (email != ? \n"
+	 		 		+ "AND (email = S.counterparty_email OR email = S.proposer_email))) AS Other_user_id\n"
+	 		 		+ " FROM Swap AS S \n"
+	 		 		+ " JOIN Acknowledgedswap AS A ON S.swap_id = A.swap_id\n"
+	 		 		+ " WHERE S.Swap_id\n"
+	 		 		+ "IN\n"
+	 		 		+ "((SELECT Swap.swap_id from Swap\n"
+	 		 		+ "JOIN Acknowledgedswap\n"
+	 		 		+ "ON Swap.swap_id = Acknowledgedswap.swap_id \n"
+	 		 		+ "WHERE Acknowledgedswap.status = 'ACCEPTED' \n"
+	 		 		+ "AND (Swap.counterparty_email = ? OR  Swap.proposer_email = ?) \n"
+	 		 		+ "AND Acknowledgedswap.swap_id NOT IN\n"
+	 		 		+ "(SELECT swap_id from Ratedswap where email = ?)))\n"
+	 		 		+ "ORDER BY acknowledged_date DESC;\n"
+	 		 		+ "";
 		 PreparedStatement stat = conn.prepareStatement(sql);
 		 stat.setString(1, userID);
 		 stat.setString(2, userID);
@@ -209,20 +216,22 @@ public class SwapRepositoryImpl implements SwapRepository{
 		 stat.setString(4, userID);
 		 stat.setString(5, userID);
 		 stat.setString(6, userID);
+		
 			ResultSet resultSet = stat.executeQuery();
 			
 			while(resultSet.next()) {
 				SwapRating unrate = new SwapRating();
+				unrate.setSwap_id(resultSet.getLong("swap_id"));
 				unrate.setAccepted_date(resultSet.getString("Acceptance_Date"));
 				if(resultSet.getInt("My_Role") == 0)
 					unrate.setMyRole("Counterparty");
 				else
-					unrate.setMyRole("Prpopser");
+					unrate.setMyRole("Proposer");
 				
 				unrate.setProposed_item(resultSet.getString("Proposed_Item"));
 				unrate.setDesired_item(resultSet.getString("Desired_Item"));
 				unrate.setOther_user(resultSet.getString("Other_User"));
-				
+				unrate.setOther_user_id(resultSet.getString("Other_user_id"));
 				unratedList.add(unrate);
 			}
 			conn.close();
@@ -239,8 +248,12 @@ public class SwapRepositoryImpl implements SwapRepository{
 
 	    try(Connection conn = dataSource.getConnection()) {
 	    	SwapHistorySummary summary = new SwapHistorySummary();
-	    	summary.setMy_role("Prpopser");
-	    	//record.put("My_Role", "Prpopser");
+	    	summary.setMy_role("Proposer");
+	    	//record.put("My_Role", "Proposer");
+	    	int total = 0;
+	    	int reject = 0;
+	    	int total1 = 0;
+	    	int reject1 = 0;
 	    	 String sql ="SELECT COUNT(*) Total from AcknowledgedSwap \n"
 	    	 		+ "WHERE swap_id\n"
 	    	 		+ "IN (SELECT swap_id from Swap WHERE Swap.proposer_email = ?)";
@@ -249,6 +262,7 @@ public class SwapRepositoryImpl implements SwapRepository{
 			 ResultSet resultSet = statement.executeQuery();
 				
 			if(resultSet.next()) {
+				total = resultSet.getInt("Total");
 				summary.setTotal_count(resultSet.getInt("Total"));
 			}
 			
@@ -269,10 +283,12 @@ public class SwapRepositoryImpl implements SwapRepository{
 	    	 statement2.setString(1, userID);
 			 ResultSet res = statement2.executeQuery();
 			if(res.next()) {
+				reject = res.getInt("Rejected");
 				summary.setRejected_count(res.getInt("Rejected"));
 			}
-			
-			String sql3 ="SELECT count(*) * 100.0 / (SELECT COUNT(*) Rejected from Swap WHERE Swap.proposer_email = ?) Rejected_percentage\n"
+			double result =((double)(reject)/(double)(total))*100;
+			summary.setRejected_percentage(String.valueOf(result));
+			/*String sql3 ="SELECT count(*) * 100.0 / (SELECT COUNT(*) Rejected from Swap WHERE Swap.proposer_email = ?) Rejected_percentage\n"
 					+ "FROM AcknowledgedSwap \n"
 					+ "WHERE swap_id\n"
 					+ "IN (SELECT swap_id from Swap WHERE Swap.proposer_email =?)\n"
@@ -284,7 +300,7 @@ public class SwapRepositoryImpl implements SwapRepository{
 			if(result.next()) {
 				summary.setRejected_percentage(result.getString("Rejected_percentage"));
 			}
-
+*/
 			history.setProposer_summary(summary);
 			SwapHistorySummary summary1 = new SwapHistorySummary();
 		    
@@ -297,6 +313,7 @@ public class SwapRepositoryImpl implements SwapRepository{
 			 ResultSet re = statement4.executeQuery();
 				
 			if(re.next()) {
+				total1 =re.getInt("Total");
 				summary1.setTotal_count(re.getInt("Total"));
 			}
 			
@@ -317,10 +334,13 @@ public class SwapRepositoryImpl implements SwapRepository{
 	    	 statement6.setString(1, userID);
 			 ResultSet resu = statement6.executeQuery();
 			if(resu.next()) {
+				reject1 = resu.getInt("Rejected");
 				summary1.setRejected_count(resu.getInt("Rejected"));
 			}
 			
-			String sql7 ="SELECT count(*) * 100.0 / (SELECT COUNT(*)  Rejected from Swap WHERE Swap.counterparty_email = ?) Rejected_percentage\n"
+			double result1 =((double)(reject1)/(double)(total1))*100;
+			summary1.setRejected_percentage(String.valueOf(result1));
+			/*String sql7 ="SELECT count(*) * 100.0 / (SELECT COUNT(*)  Rejected from Swap WHERE Swap.counterparty_email = ?) Rejected_percentage\n"
 					+ "FROM AcknowledgedSwap \n"
 					+ "WHERE swap_id\n"
 					+ "IN (SELECT swap_id from Swap WHERE Swap.counterparty_email = ?)\n"
@@ -331,41 +351,54 @@ public class SwapRepositoryImpl implements SwapRepository{
 			 ResultSet results = statement7.executeQuery();
 			if(results.next()) {
 				summary1.setRejected_percentage(results.getString("Rejected_percentage"));
-			}
+			}*/
 			history.setCounterparty_summary(summary1);
 	    	
-		 String sql8 ="SELECT S.proposed_date, A.acknowledged_date AS Accept_Reject_Date, A.status,\n"
+		 String sql8 ="SELECT S.swap_id, S.proposed_date, A.acknowledged_date AS Accept_Reject_Date, A.status,\n"
 		 		+ "(SELECT name FROM Item WHERE Item_id = S.proposed_item_id) AS Proposed_Item,\n"
 		 		+ "(SELECT name FROM Item WHERE Item_id = S.counterparty_item_id) AS Desired_Item,\n"
 		 		+ "(SELECT COUNT(*) FROM Swap where swap_id = A.swap_id AND proposer_email = ?) My_Role,\n"
 		 		+ "(SELECT nickname FROM User WHERE (email != ? \n"
 		 		+ "AND (email = S.counterparty_email OR email = S.proposer_email))) AS Other_User,\n"
-		 		+ "R.rating FROM Swap AS S\n"
+		 		+ "(SELECT email FROM User WHERE (email != ? \n"
+		 		+ "AND (email = S.counterparty_email OR email = S.proposer_email))) AS Other_user_id ,\n"
+		 		+ "(SELECT rating from ratedswap r WHERE (email = S.counterparty_email OR email = S.proposer_email) \n"
+		 		+ "AND r.email = ? AND s.swap_id = r.swap_id) AS rating FROM Swap AS S\n"
 		 		+ "JOIN AcknowledgedSwap AS A ON S.swap_id = A.swap_id\n"
-		 		+ "LEFT OUTER JOIN RatedSwap AS R ON A.swap_id = R.swap_id AND R.email=?\n"
+		 		+ "LEFT OUTER JOIN RatedSwap AS R ON A.swap_id = R.swap_id AND R.email!=?\n"
 		 		+ "WHERE (S.counterparty_email = ? OR  S.proposer_email = ?)\n"
 		 		+ "ORDER BY A.acknowledged_date DESC, S.proposed_date ASC;\n";
+		 
+		 
+		 
 		 PreparedStatement statement8 = conn.prepareStatement(sql8);
     	 statement8.setString(1, userID);
     	 statement8.setString(2, userID);
     	 statement8.setString(3, userID);
     	 statement8.setString(4, userID);
     	 statement8.setString(5, userID);
+    	 statement8.setString(6, userID);
+    	 statement8.setString(7, userID);
 		 ResultSet resultSe = statement8.executeQuery();
 			List<SwapHistory> swapHistoryList = new ArrayList<SwapHistory>();
 			while(resultSe.next()) {
 				SwapHistory history2 = new SwapHistory();
+				history2.setSwap_id(resultSe.getLong("swap_id"));
 				history2.setProposed_Date(resultSe.getDate("proposed_date"));
 				history2.setAcknowledged_date(resultSe.getDate("Accept_Reject_Date"));
 				history2.setSwap_status(resultSe.getString("status"));
 				if(resultSe.getInt("My_Role") == 0)
 					history2.setMy_role("Counterparty");
 				else
-					history2.setMy_role("Prpopser");
+					history2.setMy_role("Proposer");
 				history2.setProposed_item(resultSe.getString("Proposed_Item"));
 				history2.setDesired_item(resultSe.getString("Desired_Item"));
 				history2.setOther_user(resultSe.getString("Other_User"));
-				
+				history2.setOther_user_id(resultSe.getString("Other_user_id"));
+				//history2.setRating(Math.round(resultSe.getDouble("rating")*100)/100d);
+				Formatter formatter = new Formatter();
+		        formatter.format("%.2f", resultSe.getDouble("rating"));
+				history2.setRating(formatter.toString());
 				swapHistoryList.add(history2);
 			}
 			history.setHistory(swapHistoryList);
@@ -399,7 +432,10 @@ public class SwapRepositoryImpl implements SwapRepository{
 			details.setProposed_Date(resultSet.getDate("proposed_date"));
 			details.setAcknowledged_date(resultSet.getDate("acknowledged_date"));
 			details.setSwap_status(resultSet.getString("status"));
-			details.setRating(resultSet.getInt("rating"));
+			//details.setRating(Math.round(resultSet.getDouble("rating")*100)/100d);
+			Formatter formatter = new Formatter();
+	        formatter.format("%.2f", resultSet.getDouble("rating"));
+	        details.setRating(formatter.toString());
 			if(resultSet.getInt("My_Role") == 1)
 				details.setMy_role("Proposer");
 			else
@@ -450,12 +486,16 @@ public class SwapRepositoryImpl implements SwapRepository{
 						details.setFirstName(rset.getString("first_name"));
 						details.setNickName(rset.getString("nickname"));
 						details.setEmail(rset.getString("email"));
-						details.setDistance(rset.getDouble("distance"));
+						//details.setDistance(Math.round(rset.getDouble("distance")*100)/10d);
+						Formatter formatter1 = new Formatter();
+						formatter1.format("%.1f", rset.getDouble("distance"));
+						details.setDistance(formatter1.toString());
 						if(rset.getString("phone_number") != null)
 						{
 							Phone phone = new Phone();
 							phone.setNumber(rset.getString("phone_number"));
-							phone.setType(Enum.valueOf(PhoneNumberType.class, rset.getString("type").toUpperCase()));
+							if(rset.getString("type")!= null)
+								phone.setType(Enum.valueOf(PhoneNumberType.class,rset.getString("type")));
 							if(rset.getInt("share_phone_number") == 1)
 								phone.setShare(true);
 							else 
@@ -478,8 +518,8 @@ public class SwapRepositoryImpl implements SwapRepository{
 			if(rslt.next()) {
 				itm1.setId(rslt.getLong("item_id"));
 				itm1.setName(rslt.getString("name"));
-				itm1.setGameType(Enum.valueOf(GameType.class,rslt.getString("type")));
-				itm1.setCondition(Enum.valueOf(Condition.class,rslt.getString("condition")));
+				itm1.setGameType(rslt.getString("type"));
+				itm1.setCondition(rslt.getString("condition"));
 			
 				if(rslt.getString("description") != null)
 					itm1.setDescription(rslt.getString("description"));
@@ -500,8 +540,8 @@ public class SwapRepositoryImpl implements SwapRepository{
 		
 			itm2.setId(rsltSt.getLong("item_id"));
 			itm2.setName(rsltSt.getString("name"));
-			itm2.setGameType(Enum.valueOf(GameType.class,rsltSt.getString("type")));
-			itm2.setCondition(Enum.valueOf(Condition.class,rsltSt.getString("condition")));
+			itm2.setGameType(rsltSt.getString("type"));
+			itm2.setCondition(rsltSt.getString("condition"));
 		
 			if(rsltSt.getString("description") != null)
 				itm2.setDescription(rsltSt.getString("description"));

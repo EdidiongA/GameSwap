@@ -5,10 +5,24 @@ public class SwapAck {
 	private String proposer;
 	private String proposed_item;
 	private String desired_item;
-	private Double distance;
-	private int Rating;
+	private int proposed_item_id;
+	private int counterparty_item_id;
+	private String distance;
+	private String Rating;
 	
 	
+	public int getProposed_item_id() {
+		return proposed_item_id;
+	}
+	public void setProposed_item_id(int proposed_item_id) {
+		this.proposed_item_id = proposed_item_id;
+	}
+	public int getCounterparty_item_id() {
+		return counterparty_item_id;
+	}
+	public void setCounterparty_item_id(int counterparty_item_id) {
+		this.counterparty_item_id = counterparty_item_id;
+	}
 	public String getProposed_date() {
 		return proposed_date;
 	}
@@ -33,16 +47,16 @@ public class SwapAck {
 	public void setDesired_item(String desired_item) {
 		this.desired_item = desired_item;
 	}
-	public Double getDistance() {
+	public String getDistance() {
 		return distance;
 	}
-	public void setDistance(Double distance) {
+	public void setDistance(String distance) {
 		this.distance = distance;
 	}
-	public int getRating() {
+	public String getRating() {
 		return Rating;
 	}
-	public void setRating(int rating) {
+	public void setRating(String rating) {
 		Rating = rating;
 	}
 	

@@ -3,7 +3,8 @@ package com.gatech.gameswap.model;
 import java.sql.Date;
 
 public class SwapHistory {
-
+	
+	private Long swap_id;
 	private String my_role;
 	private Date proposed_Date;
 	private Date acknowledged_date;
@@ -11,9 +12,24 @@ public class SwapHistory {
 	private String proposed_item;
 	private String desired_item;
 	private String other_user;
-	private int rating;
+	private String other_user_id;
+	private String rating;
 	
 	
+	
+	
+	public String getOther_user_id() {
+		return other_user_id;
+	}
+	public void setOther_user_id(String other_user_id) {
+		this.other_user_id = other_user_id;
+	}
+	public Long getSwap_id() {
+		return swap_id;
+	}
+	public void setSwap_id(Long swap_id) {
+		this.swap_id = swap_id;
+	}
 	public String getMy_role() {
 		return my_role;
 	}
@@ -56,11 +72,11 @@ public class SwapHistory {
 	public void setOther_user(String other_user) {
 		this.other_user = other_user;
 	}
-	public int getRating() {
+	public String getRating() {
 		return rating;
 	}
-	public void setRating(int rating) {
-		this.rating = rating;
+	public void setRating(String string) {
+		this.rating = string;
 	}
 	
 	

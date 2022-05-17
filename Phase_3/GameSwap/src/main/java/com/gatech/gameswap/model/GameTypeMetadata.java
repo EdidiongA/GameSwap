@@ -16,10 +16,10 @@ public class GameTypeMetadata {
 	private String videoGamePlatform;
 	
 	@JsonInclude(JsonInclude.Include.NON_NULL)
-	private VideoGameMedia videoGameMedia;
+	private String videoGameMedia;
 	
 	@JsonInclude(JsonInclude.Include.NON_NULL)
-	private ComputerGamePlatform computerGamePlatform;
+	private String computerGamePlatform;
 	
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private Integer jigsawPuzzlePieceCount;
@@ -30,16 +30,16 @@ public class GameTypeMetadata {
 	public void setVideoGamePlatform(String videoGamePlatform) {
 		this.videoGamePlatform = videoGamePlatform;
 	}
-	public VideoGameMedia getVideoGameMedia() {
+	public String getVideoGameMedia() {
 		return videoGameMedia;
 	}
-	public void setVideoGameMedia(VideoGameMedia videoGameMedia) {
+	public void setVideoGameMedia(String videoGameMedia) {
 		this.videoGameMedia = videoGameMedia;
 	}
-	public ComputerGamePlatform getComputerGamePlatform() {
+	public String getComputerGamePlatform() {
 		return computerGamePlatform;
 	}
-	public void setComputerGamePlatform(ComputerGamePlatform computerGamePlatform) {
+	public void setComputerGamePlatform(String computerGamePlatform) {
 		this.computerGamePlatform = computerGamePlatform;
 	}
 	public Integer getJigsawPuzzlePieceCount() {

@@ -1,11 +1,16 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject } from '@angular/core';
 import {SelectionModel} from "@angular/cdk/collections";
 import { GameSwapItem } from '../models';
 import { Router } from '@angular/router';
 import { GameswapService } from '../gameswap.service';
 import { Subscription } from 'rxjs';
+import {MatDialog, MatDialogRef, MAT_DIALOG_DATA} from '@angular/material/dialog';
 
 const queryParamName = "pippo";
+export interface DialogData3{
+  id: string;  
+}
+
 
 @Component({
   selector: 'app-proposeswap',
@@ -18,10 +23,16 @@ export class ProposeswapComponent implements OnInit {
   userId: String
   subscriptionUser: Subscription;
   
+  selectedItem: GameSwapItem
+  subscriptionSelectedItem: Subscription;
+  distanceAway
+
   swapItem
   constructor(private router:Router,
-    private gameswapService: GameswapService) { }
+    private gameswapService: GameswapService,
+    public dialog: MatDialog) { }
 
+  showDistanceAway = false
   displayedColumns = ['Item #', 'Game Type', 'Title', 'Condition', 'selection'];
   dataSource
   selection: SelectionModel<GameSwapItem> = new SelectionModel<GameSwapItem>(false, []);
@@ -29,8 +40,16 @@ export class ProposeswapComponent implements OnInit {
 
     ELEMENT_DATA.splice(0,ELEMENT_DATA.length);
     this.subscriptionUser = this.gameswapService.currentUser.subscribe(user => this.userId = user)
+    this.subscriptionSelectedItem = this.gameswapService.currentItem.subscribe(item => this.selectedItem = item)
 
-    const promise = this.gameswapService.getItemForSwap(this.userId)
+    this.distanceAway = this.selectedItem.distance;
+
+    if(Number(this.distanceAway) > 100)
+    {
+      this.showDistanceAway = true
+    }
+
+    const promise = this.gameswapService.getItemForSwap(this.selectedItem.itemId)
     promise.then((data)=>{
       console.log(JSON.stringify(data));
       data.forEach(element => {
@@ -55,40 +74,6 @@ export class ProposeswapComponent implements OnInit {
     }).catch((error)=>{
       console.log("Promise rejected with " + JSON.stringify(error));
     });  
-
-    // ELEMENT_DATA.push(
-    //   {
-    //     itemId: 1,
-    //     type: 'video game',
-    //     title: 'tetris',
-    //     condition: 'good',
-    //     description: '',
-    //     distance: 0,
-    //     details: '',
-    //     selected: false
-    //   })
-    // ELEMENT_DATA.push(
-    //   {
-    //     itemId: 2,
-    //     type: 'board game',
-    //     title: 'monopoly',
-    //     condition: 'very good',
-    //     description: '',
-    //     distance: 0,
-    //     details: '',
-    //     selected: false
-    //   })
-    // ELEMENT_DATA.push(
-    //   {
-    //     itemId: 3,
-    //     type: 'card game',
-    //     title: 'uno',
-    //     condition: 'fair',
-    //     description: '',
-    //     distance: 0,
-    //     details: '',
-    //     selected: false
-    //   })
            
     
   }
@@ -111,8 +96,66 @@ export class ProposeswapComponent implements OnInit {
         }
   }
 
+  openDialog(): void {
+    const dialogRef = this.dialog.open(ProposeDialog, {
+      width: '250px',
+      height: '400px',     
+      data: {
+        id: '',
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      console.log('The dialog was closed');        
+    });
+  }
+
+  onConfirm() {
+    this.dataSource.forEach(element => {
+      if(element.selected)
+      {
+        const promise = this.gameswapService.getItemDetails(this.selectedItem.itemId)
+        promise.then((data)=>{
+          console.log(JSON.stringify(data));                       
+          var counterPartyID = data.itemOwner.user.email;
+
+          
+          const innerPromise = this.gameswapService.postConfirmSwap(counterPartyID, this.selectedItem.itemId, element.itemId)
+          innerPromise.then((data)=>{
+            this.openDialog()
+            this.router.navigate(['/Welcome']);
+          }).catch((error)=>{
+            console.log("Promise rejected with " + JSON.stringify(error));
+          });  
+        }).catch((error)=>{
+          console.log("Promise rejected with " + JSON.stringify(error));
+        });  
+        
+      }
+    });
+  }
+
+  onBack() {
+    this.router.navigate(['/SearchItem']);
+  }
 }
 
+
+@Component({
+  selector: 'popup3',
+  templateUrl: './popup3.html',
+})
+export class ProposeDialog {
+
+  constructor(
+    public dialogRef: MatDialogRef<ProposeDialog>,
+    @Inject(MAT_DIALOG_DATA) public data: DialogData3) {}
+
+  onOK(): void {
+    this.dialogRef.close();
+  }
+
+}
 // export interface Element {
 //   itemId: number;
 //   type: string;

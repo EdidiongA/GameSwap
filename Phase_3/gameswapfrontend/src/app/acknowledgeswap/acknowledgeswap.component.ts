@@ -1,12 +1,19 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, Inject } from '@angular/core';
 import { Router } from '@angular/router';
 import {SelectionModel} from "@angular/cdk/collections";
 import { SwapItem } from '../models';
 import { GameSwapItem } from '../models';
 import { GameswapService } from '../gameswap.service';
 import { Subscription } from 'rxjs';
-
+import { MatTableDataSource } from '@angular/material/table';
+import {MatDialog, MatDialogRef, MAT_DIALOG_DATA} from '@angular/material/dialog';
 const queryParamName = "pippo";
+
+export interface DialogData2 {
+  id: string;  
+  firstName: string;
+  phoneNumber: string;
+}
 
 @Component({
   selector: 'app-acknowledgeswap',
@@ -15,61 +22,122 @@ const queryParamName = "pippo";
 })
 export class AcknowledgeswapComponent implements OnInit, OnDestroy {
 
-  
+  ELEMENT_DATA: SwapItem[] = [ 
+  ];
   item: GameSwapItem
   subscriptionItem: Subscription;
   displayedColumns = ['Date', 'Desired Item', 'Proposer', 'Rating', 'Distance', 'Proposed Item', 'Ack'];
-  dataSource
+  dataSource =  new MatTableDataSource<SwapItem>(this.ELEMENT_DATA);
   selection: SelectionModel<SwapItem> = new SelectionModel<SwapItem>(false, []);
   
   constructor(private router:Router,
-    private gameswapService: GameswapService) { }
+    private gameswapService: GameswapService,
+    public dialog: MatDialog) { }
 
   ngOnInit(): void {
-    this.subscriptionItem = this.gameswapService.currentItem.subscribe(item => this.item = this.item)
+    this.subscriptionItem = this.gameswapService.currentAcceptRejectItemForViewDetails.subscribe(item => this.item = item)
+   
+    this.getAcceptRejectSwaps()
+  }
 
-    ELEMENT_DATA.splice(0,ELEMENT_DATA.length);   
+  getAcceptRejectSwaps() {
+    this.ELEMENT_DATA.splice(0,this.ELEMENT_DATA.length); 
 
-    ELEMENT_DATA.push(
-      {
-        swapId: 10,
-        date: '1/15/2020',
-        desiredItemId: '101',
-        desiredItemTitle: 'Cards Against Humanity',
-        proposer:'HeroOfTime',
-        rating:4.99,
-        distance:8.2,
-        proposedItemId:103,
-        proposedItemTittle:'super mario'
-      })   
-      ELEMENT_DATA.push(
-        {
-          swapId: 101,
-          date: '1/25/2020',
-          desiredItemId: '108',
-          desiredItemTitle: 'Against Humanity',
-          proposer:'Hero',
-          rating:4.25,
-          distance:108.2,
-          proposedItemId:1031,
-          proposedItemTittle:'super fighter'
-        })   
-    this.dataSource = ELEMENT_DATA;
+    const promise = this.gameswapService.getAcceptRejectSwap()
+    promise.then((data)=>{
+      console.log(JSON.stringify(data));                       
+    
+      // This needs to be updated with desired_item_id and propose item id
+      data.forEach(element => {
+        this.ELEMENT_DATA.push(
+          {
+            swapId: 10,
+            date: element.proposed_date,
+            desiredItemId: element.counterparty_item_id,
+            desiredItemTitle: element.desired_item,
+            proposer: element.proposer,
+            rating: element.rating,
+            distance: element.distance,
+            proposedItemId:element.proposed_item_id,
+            proposedItemTittle:element.proposed_item
+          })   
+      });
+     
+       
+      this.dataSource = new MatTableDataSource<SwapItem>(this.ELEMENT_DATA);;
+    }).catch((error)=>{
+      console.log("Promise rejected with " + JSON.stringify(error));
+    });  
   }
 
   ngOnDestroy() {
-    
+    this.subscriptionItem.unsubscribe()
   }
 
   onBackToMain() {
     this.router.navigate(['/Welcome']);
   }  
  
+  openDialog(email, firstName, phoneNumber): void {
+    const dialogRef = this.dialog.open(AcceptDialog, {
+      width: '250px',
+      height: '400px',
+      data: {
+        id: email,
+        firstName: firstName,
+        phoneNumber: phoneNumber,
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      console.log('The dialog was closed');        
+    });
+  }
+
   onAccept(row: SwapItem) {
-    console.log('Accept - ' + row)        
+    console.log('Accept - ' + row)   
+    
+    const promise = this.gameswapService.postAcceptSwap(row.desiredItemId, row.proposedItemId)
+    promise.then((data)=>{
+      console.log(JSON.stringify(data));   
+      
+      this.getAcceptRejectSwaps()
+
+      const promise = this.gameswapService.getItemDetails(row.proposedItemId)
+      promise.then((data)=>{
+        console.log(JSON.stringify(data));   
+               
+        var id = data.itemOwner.user.email
+        //var firstName = 'need to wait for API fix'
+        var firstName = data.itemOwner.user.firstName
+        var phoneNumber = 'NA'
+        if(data.itemOwner.user.phone.share)
+        {
+          phoneNumber = data.itemOwner.user.phone.number + '(' + data.itemOwner.user.phone.type + ')'
+        }
+
+        this.openDialog(id, firstName, phoneNumber)
+  
+      }).catch((error)=>{
+        console.log("Promise rejected with " + JSON.stringify(error));
+      }); 
+
+
+    }).catch((error)=>{
+      console.log("Promise rejected with " + JSON.stringify(error));
+    });  
   }
   onReject(row: SwapItem) {
     console.log('Reject - ' + row)
+
+    const promise = this.gameswapService.postRejecttSwap(row.desiredItemId, row.proposedItemId)
+    promise.then((data)=>{
+      console.log(JSON.stringify(data));   
+      
+      this.getAcceptRejectSwaps()
+    }).catch((error)=>{
+      console.log("Promise rejected with " + JSON.stringify(error));
+    });  
   }
 
   onDesiredItemDetails(row) {
@@ -85,8 +153,8 @@ export class AcknowledgeswapComponent implements OnInit, OnDestroy {
       selected: false
     }
     console.log(this.item)    
-    this.gameswapService.updateSelectedItem(this.item);
-    this.router.navigate(['/ViewItem']);
+    this.gameswapService.updateSelectedAcceptRejectItemForViewDetails(this.item);
+    this.router.navigate(['/ViewAcceptRejectItemDetails']);
   }
     onProposedItemDetails(row) {
   
@@ -102,10 +170,23 @@ export class AcknowledgeswapComponent implements OnInit, OnDestroy {
       }
   
     console.log(this.item)    
-    this.gameswapService.updateSelectedItem(this.item);
-    this.router.navigate(['/ViewItem']);
+    this.gameswapService.updateSelectedAcceptRejectItemForViewDetails(this.item);
+    this.router.navigate(['/ViewAcceptRejectItemDetails']);
   }
 }
 
-const ELEMENT_DATA: SwapItem[] = [ 
-];
+@Component({
+  selector: 'popup2',
+  templateUrl: './popup2.html',
+})
+export class AcceptDialog {
+
+  constructor(
+    public dialogRef: MatDialogRef<AcceptDialog>,
+    @Inject(MAT_DIALOG_DATA) public data: DialogData2) {}
+
+  onOK(): void {
+    this.dialogRef.close();
+  }
+
+}

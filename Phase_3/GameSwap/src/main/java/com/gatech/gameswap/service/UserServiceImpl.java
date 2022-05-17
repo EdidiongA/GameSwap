@@ -37,7 +37,7 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	public Boolean authenticateUser(String email, String password) {		
+	public String authenticateUser(String email, String password) {		
 		return userRepository.authenticateUser(email, password);
 	}
 

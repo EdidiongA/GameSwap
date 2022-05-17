@@ -40,16 +40,16 @@ public class UserController {
 	
 	@RequestMapping(method = RequestMethod.GET, path="/authenticate")
 	@ApiOperation("authenticate user during login")
-	public ResponseEntity<Boolean> authenticateUser(@RequestParam String email, @RequestParam String password) {
+	public ResponseEntity<String> authenticateUser(@RequestParam String email, @RequestParam String password) {
 		
-		Boolean success = null;
+		String success = null;
 		try{
 			success = userService.authenticateUser(email, password);
 		}catch(Exception e) {
 			e.printStackTrace();
 			success = null;
 		}
-		return new ResponseEntity<Boolean>(success, success!=null ? HttpStatus.OK : HttpStatus.UNAUTHORIZED);
+		return new ResponseEntity<String>(success, success!=null ? HttpStatus.OK : HttpStatus.UNAUTHORIZED);
 	}
 	
 	@RequestMapping(method = RequestMethod.GET)
@@ -69,14 +69,16 @@ public class UserController {
 	@RequestMapping(method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 	@ApiOperation("update an existing user with given details")
 	public ResponseEntity<String> updateUser(@RequestBody User user) {
-		
+		Boolean success = null;
 		try{
-			userService.updateUser(user);
+			success = userService.updateUser(user);
 		}catch(Exception e) {
 			e.printStackTrace();
+			success = null;
 		}
-		return new ResponseEntity<String>(HttpStatus.OK);
+		return new ResponseEntity<String>(String.valueOf(success), success != null ? HttpStatus.OK : HttpStatus.INTERNAL_SERVER_ERROR);
 	}
+	
 	
 	@RequestMapping(method = RequestMethod.GET, path = "/exists/email")
 	@ApiOperation("check if user already exists with given email")

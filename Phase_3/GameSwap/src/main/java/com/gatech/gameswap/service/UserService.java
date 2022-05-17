@@ -9,7 +9,7 @@ import com.gatech.gameswap.model.User;
 public interface UserService {
 
 	Boolean createUser(User user);
-	Boolean authenticateUser(String email, String password);
+	String authenticateUser(String email, String password);
 	User getUser(String email);
 	Boolean updateUser(User user);
 	Boolean checkEmailExists(String email);

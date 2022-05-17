@@ -43,7 +43,7 @@ public class ItemController {
 
 	@RequestMapping(path = "/owned", method = RequestMethod.GET)
 	@ApiOperation("get owned items available for swapping for user with given email")
-	public ResponseEntity<List<Item>> getOwnedItems(@RequestHeader String email) {
+	public ResponseEntity<List<Item>> getOwnedItems(@RequestParam String email) {
 		List<Item> items;
 		try{
 			items = itemService.getOwnedItems(email);

@@ -1,139 +1,182 @@
-<div class="form-control container format ">
+- <div class="form-control container format ">
     <div class="row ">
         <div class="col-sm-6  ">
-            <!-- this column is for swap details information-->
+            
             <div><h2>Swap Details</h2></div>
             <div><hr></div>
             <div class="row">
                 <div class="col-4 header">Proposed</div>
                 <div class="col-8">
-                    <div (ngModel)= "proposed" name="proposed" id="proposed">sample data</div>
+                    <div (ngModel)= "proposed">{{proposed}}</div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-4 header">Accepted/Rejected</div>
                 <div class="col-8">
-                    <div (ngModel)= "acceptedRejected" name="acceptedRejected" id="acceptedRejected">sample data</div>
+                    <div (ngModel)= "acceptedRejected" >{{acceptedRejected}}</div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-4 header">Status</div>
                 <div class="col-8">
-                    <div (ngModel)="status" name="status" id="status">sample data {{status}}</div>
+                    <div >{{status}}</div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-4 header">My Role</div>
                 <div class="col-8">
-                    <div (ngModel)= "myRole" name="myRole" id="myRole">sample data</div>
+                    <div >{{myRole}}</div>
                 </div>
-            </div><div class="row">
+            </div><div class="row"  *ngIf="isRejectedSwap">
                 <div class="col-4 header">Rating left</div>
                 <div class="col-8">
-                    <div (ngModel)= "ratingLeft" name="ratingLeft" id="ratingLeft">sample data</div>
+                    <div >{{ratingLeft}}</div>
                 </div>
             </div>
         </div>
         <div class="col ">
-            <!-- this column is for user details information-->
+            
             <div><h2>User Details</h2></div>
             <div><hr></div>
             <div class="row">
                 <div class="col-4 header">Nickname</div>
                 <div class="col-8">
-                    <div (ngModel)= "Nickname" name="Nickname" id="Nickname">sample data</div>
+                    <div >{{Nickname}}</div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-4 header">Distance</div>
                 <div class="col-8">
-                    <div (ngModel)= "Distance" name="Distance" id="Distance">sample data</div>
+                    <div >{{Distance}}</div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-4 header">Name</div>
                 <div class="col-8">
-                    <div (ngModel)= "Name" name="Name" id="Name">sample data</div>
+                    <div>{{Name}}</div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-4 header">Email</div>
                 <div class="col-8">
-                    <div (ngModel)= "Email" name="Email" id="Email">sample data</div>
+                    <div >{{Email}}</div>
                 </div>
-            </div><div class="row">
+            </div><div class="row" *ngIf="showPhone">
                 <div class="col-4 header">Phone</div>
                 <div class="col-8">
-                    <div (ngModel)= "Phone" name="Phone" id="Phone">sample data</div>
+                    <div>{{Phone}}</div>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="row">
-        <div class="col-sm-6 section">
-            <!-- this column is for proposed item information-->
+        <div class="col-sm-6 section" *ngIf="isRejectedSwap">
+            
             <div><h2>Proposed item</h2></div>
             <div><hr></div>
             <div class="row">
                 <div class="col-4 header">Item No</div>
                 <div class="col-8">
-                    <div (ngModel)= "itemNo" name="itemNo" id="itemNo">sample data</div>
+                    <div>{{itemNo}}</div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-4 header">Title</div>
-                <div class="col-8">
-                    <div (ngModel)= "title" name="title" id="title">sample data</div>
+                <div class="col-3">
+                    <div>{{title}}</div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-4 header">Game type</div>
-                <div class="col-8">
-                    <div (ngModel)= "gameType" name="gameType" id="gameType">sample data</div>
+                <div class="col-3">
+                    <div >{{gameType}}</div>
+                </div>
+            </div>
+            <div class="row" *ngIf="showPlatform">
+                <div class="col-4 header">Platform</div>
+                <div class="col-3">
+                    <div >{{platform}}</div>
+                </div>
+            </div>
+            <div class="row" *ngIf="showMedia">
+                <div class="col-4 header">Media</div>
+                <div class="col-3">
+                    <div >{{media}}</div>
+                </div>
+            </div>
+            <div class="row" *ngIf="showCount">
+                <div class="col-4 header">Count</div>
+                <div class="col-3">
+                    <div >{{count}}</div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-4 header">Condition</div>
-                <div class="col-8">
-                    <div (ngModel)= "condition" name="condition" id="condition">sample data</div>
+                <div class="col-3">
+                    <div >{{condition}}</div>
                 </div>
-            </div><div class="row">
-                <div class="col-4 header">Descriptiont</div>
-                <div class="col-8">
-                    <div (ngModel)= "description" name="description" id="description">sample data</div>
+            </div><div class="row" *ngIf="showDescription">
+                <div class="col-4 header">Description</div>
+                <div class="col-3">
+                    <div>{{description}}</div>
                 </div>
             </div>
         </div>
-        <div class="col section">
-            <!-- this column is for Desired item information-->
+        <div class="col section" *ngIf="isRejectedSwap">
+            
             <div><h2>Desired item</h2></div>
             <div><hr></div>
             <div class="row">
                 <div class="col-4 header">Item No</div>
                 <div class="col-8">
-                    <div (ngModel)= "desiredItemNo" name="desiredItemNo" id="desiredItemNo">sample data</div>
+                    <div >{{desiredItemNo}}</div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-4 header">Title</div>
                 <div class="col-8">
-                    <div (ngModel)= "desiredTitle" name="desiredTitle" id="desiredTitle">sample data</div>
+                    <div>{{desiredTitle}}</div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-4 header">Game type</div>
                 <div class="col-8">
-                    <div (ngModel)= "desiredGameType" name="desiredGameType" id="desiredGameType">sample data</div>
+                    <div >{{desiredGameType}}</div>
                 </div>
             </div>
-            <div class="row">
+            <div class="row" *ngIf="showDesiredPlatform">
+                <div class="col-4 header">Platform</div>
+                <div class="col-8">
+                    <div >{{desiredPlatform}}</div>
+                </div>
+            </div>
+            <div class="row" *ngIf="showDesiredMedia">
+                <div class="col-4 header">Media</div>
+                <div class="col-8">
+                    <div >{{desiredMedia}}</div>
+                </div>
+            </div>
+            <div class="row" *ngIf="showDesiredCount">
+                <div class="col-4 header">Count</div>
+                <div class="col-8">
+                    <div >{{desiredCount}}</div>
+                </div>
+            </div>            
+            <div class="row" >
                 <div class="col-4 header">Condition</div>
                 <div class="col-8">
-                    <div (ngModel)= "desiredCondition" name="desiredCondition" id="desiredCondition">sample data</div>
+                    <div >{{desiredCondition}}</div>
+                </div>            
+            </div>
+            <div class="row" *ngIf="showDesiredDescription">
+                <div class="col-4 header">Description</div>
+                <div class="col-8">
+                    <div >{{desiredDescription}}</div>
                 </div>
-            
-        </div>
+            </div>
     </div>
+</div> 
+<div>
+<button class="btn btn-primary" (click)="onBack()">Back</button>
 </div>
-

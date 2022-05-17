@@ -9,7 +9,7 @@ public interface UserRepository {
 
 	Boolean createUser(User user);
 	Boolean updateUser(User user);
-	Boolean authenticateUser(String email, String password);
+	String authenticateUser(String email, String password);
 	User getUser(String email);
 	Boolean checkEmailExists(String email);
 	Boolean checkPhoneExists(String phone);

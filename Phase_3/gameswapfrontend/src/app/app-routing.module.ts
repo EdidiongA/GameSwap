@@ -12,6 +12,9 @@ import { ProposeswapComponent } from './proposeswap/proposeswap.component';
 import { ViewitemComponent } from './viewitem/viewitem.component';
 import { AcknowledgeswapComponent } from './acknowledgeswap/acknowledgeswap.component';
 import { SwapdetailsComponent } from './swapdetails/swapdetails.component';
+import { ViewacceptrejectitemComponent } from './viewacceptrejectitem/viewacceptrejectitem.component';
+import { RateswapComponent } from './rateswap/rateswap.component';
+import { MyitemdetailsComponent } from './myitemdetails/myitemdetails.component';
 
 const routes: Routes = [  
   { path: '', redirectTo: 'Login', pathMatch: 'full' },
@@ -63,7 +66,19 @@ const routes: Routes = [
       path: 'SwapDetails',
       component: SwapdetailsComponent,
   },
-  
+  {
+      path: 'ViewAcceptRejectItemDetails',
+      component: ViewacceptrejectitemComponent,
+  },
+  {
+      path: 'RateSwap',
+      component: RateswapComponent,
+  },
+  {
+      path: 'ViewMyItemDetails',
+      component: MyitemdetailsComponent,
+  },
+    
 ];
 
 @NgModule({

@@ -1,28 +1,50 @@
 package com.gatech.gameswap.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+//import com.gatech.gameswap.commons.Condition;
+//import com.gatech.gameswap.commons.GameType;
+
 
 public class Item {
 
-	public enum Condition {
-		Mint, LikeNew, LightlyUsed, ModeratelyUsed, HeavilyUsed, Damaged
-	}
-	
-	public enum GameType {
-		BoardGame, CardGame, VideoGame, ComputerGame, JigsawPuzzle
-	}
-	
 	public enum ItemSearchKey {
 		  Keyword, MyPostalCode, Miles, PostalCode
 	}
+	
+
 	
 	
 	private Long id;
 	private String name;
 	private String description;
-	private Condition condition;
-	private GameType gameType;
+	private String fullDescription;
+	private String condition;
+	private String gameType;
 	
+	
+	public String getFullDescription() {
+		return fullDescription;
+	}
+
+	public void setFullDescription(String fullDescription) {
+		this.fullDescription = fullDescription;
+	}
+
+	public String getCondition() {
+		return condition;
+	}
+
+	public void setCondition(String condition) {
+		this.condition = condition;
+	}
+
+	public String getGameType() {
+		return gameType;
+	}
+
+	public void setGameType(String gameType) {
+		this.gameType = gameType;
+	}
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private GameTypeMetadata gameTypeMetadata;
 
@@ -61,18 +83,8 @@ public class Item {
 	public void setDescription(String description) {
 		this.description = description;
 	}
-	public Condition getCondition() {
-		return condition;
-	}
-	public void setCondition(Condition condition) {
-		this.condition = condition;
-	}
-	public GameType getGameType() {
-		return gameType;
-	}
-	public void setGameType(GameType gameType) {
-		this.gameType = gameType;
-	}
+	
+
 	public GameTypeMetadata getGameTypeMetadata() {
 		return gameTypeMetadata;
 	}

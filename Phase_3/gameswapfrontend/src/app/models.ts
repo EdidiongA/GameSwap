@@ -2,8 +2,11 @@ export interface GameSwapItem {
     itemId: number;
     type: string;
     title: string;
+    titleClass?: string;
     condition: string;
     description: string;
+    descriptionClass?: string;
+    fullDescription?: string;
     distance: number;  
     details: string;
     selected: boolean;
